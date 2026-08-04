@@ -39,6 +39,12 @@ const context = { console };
 vm.runInNewContext(`globalThis.window = globalThis;${match[1]}`, context);
 const { SCHEMA_VERSION, sampleScenario, validateScenario, migrateScenario, projectScenario } = context;
 
+const fixture = (update) => {
+  const scenario = structuredClone(sampleScenario());
+  update(scenario);
+  return scenario;
+};
+
 test('sample scenario is a valid two-person GBP scenario', () => {
   assert.equal(SCHEMA_VERSION, 1);
   const scenario = sampleScenario();
@@ -178,6 +184,191 @@ test('projects ages, salary, contributions and State Pension from their configur
   assert.deepEqual(rows[0].statePension, [0, 0]);
   assert.deepEqual(rows[1].statePension, [0, 0]);
   assert.deepEqual(rows[2].statePension, [12500, 12500]);
+});
+
+test('projects both people as retired when each is at or beyond retirement age', () => {
+  const scenario = fixture((value) => {
+    value.startYear = 2030;
+    value.household.endAge = 66;
+    value.people[0].age = 65;
+    value.people[0].retirementAge = 60;
+    value.people[1].age = 64;
+    value.people[1].retirementAge = 62;
+  });
+
+  const [row] = projectScenario(scenario);
+
+  assert.deepEqual(row.salary, [0, 0]);
+  assert.deepEqual(row.contributions, [0, 0]);
+});
+
+test('stops salary and contributions at different retirement ages', () => {
+  const scenario = fixture((value) => {
+    value.startYear = 2030;
+    value.household.endAge = 64;
+    value.people[0].age = 59;
+    value.people[0].retirementAge = 60;
+    value.people[1].age = 58;
+    value.people[1].retirementAge = 62;
+    value.household.essentialAnnual = 0;
+    value.household.preferredAnnual = 0;
+  });
+
+  const rows = projectScenario(scenario);
+
+  assert.deepEqual(rows[0].salary, [45000, 30000]);
+  assert.deepEqual(rows[1].salary, [0, 30000]);
+  assert.deepEqual(rows[2].salary, [0, 30000]);
+  assert.deepEqual(rows[0].contributions, [9000, 6000]);
+  assert.deepEqual(rows[1].contributions, [0, 6000]);
+  assert.deepEqual(rows[2].contributions, [0, 6000]);
+  assert.deepEqual(rows[3].contributions, [0, 6000]);
+  assert.deepEqual(rows[4].contributions, [0, 0]);
+});
+
+test('starts State Pension independently for each person', () => {
+  const scenario = fixture((value) => {
+    value.startYear = 2030;
+    value.household.endAge = 69;
+    value.people[0].age = 66;
+    value.people[0].retirementAge = 60;
+    value.people[0].statePension = { startAge: 67, annualAmount: 8400 };
+    value.people[1].age = 65;
+    value.people[1].retirementAge = 60;
+    value.people[1].statePension = { startAge: 68, annualAmount: 9600 };
+    value.household.essentialAnnual = 0;
+    value.household.preferredAnnual = 0;
+  });
+
+  const rows = projectScenario(scenario);
+
+  assert.deepEqual(rows[0].statePension, [0, 0]);
+  assert.deepEqual(rows[1].statePension, [8400, 0]);
+  assert.deepEqual(rows[2].statePension, [8400, 0]);
+  assert.deepEqual(rows[3].statePension, [8400, 9600]);
+});
+
+test('funds spending without private pensions when their pots are zero', () => {
+  const scenario = fixture((value) => {
+    value.startYear = 2030;
+    value.household.endAge = 60;
+    value.household.essentialAnnual = 600;
+    value.household.preferredAnnual = 900;
+    value.people.forEach((person) => {
+      person.age = 60;
+      person.retirementAge = 60;
+      person.privatePension = { pot: 0, growthPct: 0 };
+      person.statePension = { startAge: 70, annualAmount: 0 };
+    });
+    value.savings = { amount: 1200, interestPct: 0 };
+    value.cash = { amount: 0, interestPct: 0 };
+    value.household.drawdownPriority = ['privatePension', 'savings', 'cash'];
+  });
+
+  const [row] = projectScenario(scenario);
+
+  assert.deepEqual(row.draws.privatePension, [0, 0]);
+  assert.equal(row.draws.savings, 900);
+  assert.equal(row.spending.preferredShortfall, 0);
+});
+
+test('records savings exhaustion before using cash', () => {
+  const scenario = fixture((value) => {
+    value.startYear = 2030;
+    value.household.endAge = 60;
+    value.household.essentialAnnual = 600;
+    value.household.preferredAnnual = 600;
+    value.people.forEach((person) => {
+      person.age = 60;
+      person.retirementAge = 60;
+      person.privatePension = { pot: 0, growthPct: 0 };
+      person.statePension = { startAge: 70, annualAmount: 0 };
+    });
+    value.savings = { amount: 300, interestPct: 0 };
+    value.cash = { amount: 500, interestPct: 0 };
+    value.household.drawdownPriority = ['savings', 'cash', 'privatePension'];
+  });
+
+  const [row] = projectScenario(scenario);
+
+  assert.equal(row.draws.savings, 300);
+  assert.equal(row.balances.savings, 0);
+  assert.equal(row.draws.cash, 300);
+  assert.equal(row.balances.cash, 200);
+});
+
+test('supports cash-only funding when savings and private pensions are empty', () => {
+  const scenario = fixture((value) => {
+    value.startYear = 2030;
+    value.household.endAge = 60;
+    value.household.essentialAnnual = 400;
+    value.household.preferredAnnual = 400;
+    value.people.forEach((person) => {
+      person.age = 60;
+      person.retirementAge = 60;
+      person.privatePension = { pot: 0, growthPct: 0 };
+      person.statePension = { startAge: 70, annualAmount: 0 };
+    });
+    value.savings = { amount: 0, interestPct: 0 };
+    value.cash = { amount: 900, interestPct: 0 };
+    value.household.drawdownPriority = ['cash', 'savings', 'privatePension'];
+  });
+
+  const [row] = projectScenario(scenario);
+
+  assert.equal(row.draws.cash, 400);
+  assert.equal(row.balances.cash, 500);
+  assert.equal(row.draws.savings, 0);
+  assert.deepEqual(row.draws.privatePension, [0, 0]);
+});
+
+test('distinguishes a preferred shortfall from an essential shortfall', () => {
+  const scenario = fixture((value) => {
+    value.startYear = 2030;
+    value.household.endAge = 60;
+    value.household.essentialAnnual = 400;
+    value.household.preferredAnnual = 700;
+    value.people.forEach((person) => {
+      person.age = 60;
+      person.retirementAge = 60;
+      person.privatePension = { pot: 0, growthPct: 0 };
+      person.statePension = { startAge: 60, annualAmount: 250 };
+    });
+    value.savings = { amount: 0, interestPct: 0 };
+    value.cash = { amount: 0, interestPct: 0 };
+  });
+
+  const [row] = projectScenario(scenario);
+
+  assert.equal(row.income.total, 500);
+  assert.equal(row.spending.essentialShortfall, 0);
+  assert.equal(row.spending.preferredShortfall, 200);
+  assert.equal(row.spending.essentialCovered, true);
+});
+
+test('converts inflated nominal values back to today\'s money', () => {
+  const scenario = fixture((value) => {
+    value.startYear = 2030;
+    value.household.endAge = 61;
+    value.household.essentialAnnual = 100;
+    value.household.preferredAnnual = 100;
+    value.household.inflationPct = 10;
+    value.people.forEach((person) => {
+      person.age = 60;
+      person.retirementAge = 60;
+      person.privatePension = { pot: 0, growthPct: 0 };
+      person.statePension = { startAge: 70, annualAmount: 0 };
+    });
+    value.savings = { amount: 0, interestPct: 0 };
+    value.cash = { amount: 300, interestPct: 0 };
+  });
+
+  const rows = projectScenario(scenario);
+
+  assert.ok(Math.abs(rows[1].nominal.spending.essential - 110) < 1e-9);
+  assert.ok(Math.abs(rows[1].todaysMoney.spending.essential - 100) < 1e-9);
+  assert.ok(Math.abs(rows[1].nominal.spending.preferred - 110) < 1e-9);
+  assert.ok(Math.abs(rows[1].todaysMoney.spending.preferred - 100) < 1e-9);
 });
 
 test('grows assets before the annual draw and respects configured drawdown priority', () => {
