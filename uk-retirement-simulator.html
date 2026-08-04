@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>UK Retirement Simulator</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%23172033'/%3E%3Cpath d='M4 11h8M5 8h6M6 5h4' stroke='%23fff' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E">
   <style>
     :root { color-scheme: light; font-family: system-ui, sans-serif; line-height: 1.4; }
     body { margin: 0; background: #f5f7fa; color: #172033; }
@@ -420,6 +421,7 @@
   <script>
     (() => {
       const form = document.querySelector('#scenario-form');
+      const clone = (value) => JSON.parse(JSON.stringify(value));
       const sample = sampleScenario();
       let lastValidScenario = clone(sample);
       let lastProjection = projectScenario(lastValidScenario);

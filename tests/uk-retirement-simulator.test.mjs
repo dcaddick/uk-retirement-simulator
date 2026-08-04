@@ -23,12 +23,14 @@ test('UK MVP markup exposes the focused interface without network dependencies',
   assert.match(html, /setAttribute\('aria-invalid', 'true'\)/);
   assert.match(html, /setAttribute\('aria-describedby'/);
   assert.match(html, /Could not save locally:/);
+  assert.match(html, /<link rel="icon" href="data:image\/svg\+xml,/i, 'the app must provide a local inline favicon');
   assert.doesNotMatch(html, /\b(fetch|XMLHttpRequest|WebSocket)\b|https?:\/\//, 'the MVP must not make network requests');
 });
 
 test('UI script remains parseable outside the engine harness', () => {
   const uiMatch = html.match(/<script>\s*\(\(\) => \{\s*const form = document\.querySelector\('#scenario-form'\)[\s\S]*?<\/script>/);
   assert.ok(uiMatch, 'UI script must be present');
+  assert.match(uiMatch[0], /const clone = \(value\) => JSON\.parse\(JSON\.stringify\(value\)\);/, 'UI script must define its own clone helper');
   assert.doesNotThrow(() => new vm.Script(uiMatch[0].replace(/^<script>|<\/script>$/g, '')));
 });
 
