@@ -28,6 +28,8 @@ Edge, or Firefox. No server or network connection is required.
 
 - [ ] The page loads without a console error and shows the Scenario form,
       assumptions, summary, chart and annual table.
+- [ ] Check the responsive layout at a narrow/mobile width and at a desktop
+      width; confirm the form, summary, chart and annual table remain usable.
 - [ ] Enter valid fictional values for both people and click **Run projection**;
       the summary and annual table update.
 - [ ] Set one retirement age later than the other and confirm salary and
@@ -40,6 +42,8 @@ Edge, or Firefox. No server or network connection is required.
       essential-covered result can still show a preferred shortfall.
 - [ ] Change the display selector to **Today’s money** and confirm the table,
       chart and summary values use the selected view.
+- [ ] For the same displayed rows, compare the chart and annual table and
+      confirm they agree on the displayed years and values.
 - [ ] Save locally, reload the page, and load locally; confirm the scenario is
       restored. If browser storage is unavailable, confirm the visible error is
       understandable.
@@ -47,8 +51,10 @@ Edge, or Firefox. No server or network connection is required.
       valid and reproducible.
 - [ ] Submit invalid input and confirm field-level messages, `aria-invalid`,
       and focus behaviour are usable by keyboard.
-- [ ] Confirm the page makes no network requests and works with JavaScript
-      enabled from a local file.
+- [ ] Correct the invalid input and confirm the errors clear and the last valid
+      projection returns.
+- [ ] Confirm the console is clean: no errors, warnings or unexpected network
+      requests; the page works with JavaScript enabled from a local file.
 
 Real-browser execution is a handoff item when a browser session is not
 available to the verification agent.
