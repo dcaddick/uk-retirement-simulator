@@ -75,6 +75,10 @@
         if (!Array.isArray(scenario.people) || scenario.people.length === 0) error('people', 'must contain at least one person');
         else scenario.people.forEach((person, index) => {
           const field = (name) => `people[${index}].${name}`;
+          if (!person || typeof person !== 'object' || Array.isArray(person)) {
+            error(`people[${index}]`, 'must be an object');
+            return;
+          }
           if (typeof person.name !== 'string' || !person.name.trim()) error(field('name'), 'is required');
           nonNegative(person.age, field('age'));
           nonNegative(person.retirementAge, field('retirementAge'));

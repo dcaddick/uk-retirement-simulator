@@ -69,6 +69,16 @@ test('validation reports field-specific errors for invalid values', () => {
   }
 });
 
+test('validation reports malformed person entries without throwing', () => {
+  const scenario = sampleScenario();
+  scenario.people = [null, 'not a person'];
+
+  const result = validateScenario(scenario);
+  assert.equal(result.valid, false);
+  assert.ok(result.errors.some((error) => error.field === 'people[0]'));
+  assert.ok(result.errors.some((error) => error.field === 'people[1]'));
+});
+
 test('migration creates a current-version scenario without mutating raw input', () => {
   const raw = { ...sampleScenario() };
   delete raw.schemaVersion;
