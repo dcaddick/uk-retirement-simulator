@@ -35,8 +35,7 @@ Edge, or Firefox. No server or network connection is required.
 
 ### Completed browser verification — 2026-08-04
 
-Against implementation commit `da7a4f7540a5513ed3ba25f66fe533b37e9cd2c8`,
-with the browser fixes included through that commit:
+Against final implementation commit `e573ff0`, including the browser fixes:
 
 - A local HTTP page loaded successfully, and the starter Person 1 and Person 2
   fields were populated.
@@ -58,8 +57,10 @@ with the browser fixes included through that commit:
       assumptions, summary, chart and annual table.
 - [x] Check the responsive layout at a narrow/mobile width and at a desktop
       width; confirm the form, summary, chart and annual table remain usable.
-- [ ] Enter valid fictional values for both people and click **Run projection**;
-      the summary and annual table update.
+- [x] Enter valid fictional values for both people; input changes recalculate
+      and the summary and annual table update.
+### Additional scenario-specific browser cases not run in this pass
+
 - [ ] Set one retirement age later than the other and confirm salary and
       contributions stop independently at the configured ages.
 - [ ] Set different State Pension start ages and confirm each income begins in
@@ -84,5 +85,6 @@ with the browser fixes included through that commit:
 - [x] Confirm the console is clean: no errors, warnings or unexpected network
       requests; the page works with JavaScript enabled from a local file.
 
-Real-browser execution is a handoff item when a browser session is not
-available to the verification agent.
+The completed browser verification above covers the items marked `[x]`.
+The remaining unchecked scenario-specific cases are follow-up coverage for
+testers and contributors; they are not claimed as complete evidence here.
