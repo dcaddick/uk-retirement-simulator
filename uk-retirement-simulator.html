@@ -430,7 +430,7 @@
       const currency = new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP', maximumFractionDigits: 0 });
       const number = (value) => Number.isFinite(value) ? currency.format(value) : '—';
       const fieldId = (field) => `field-${field.replace(/\[(\d+)\]/g, '-$1').replace(/[^a-zA-Z0-9]+/g, '-')}`;
-      const getPath = (object, path) => path.split('.').reduce((value, part) => value?.[part], object);
+      const getPath = (object, path) => path.replace(/\[(\d+)\]/g, '.$1').split('.').reduce((value, part) => value?.[part], object);
       const setPath = (object, path, value) => {
         const parts = path.replace(/\[(\d+)\]/g, '.$1').split('.');
         const final = parts.pop();

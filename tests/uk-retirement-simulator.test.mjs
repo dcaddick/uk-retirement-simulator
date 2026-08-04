@@ -32,6 +32,8 @@ test('UI script remains parseable outside the engine harness', () => {
   assert.ok(uiMatch, 'UI script must be present');
   assert.match(uiMatch[0], /const clone = \(value\) => JSON\.parse\(JSON\.stringify\(value\)\);/, 'UI script must define its own clone helper');
   assert.match(uiMatch[0], /const sum = \(values\) => values\.reduce\(\(total, value\) => total \+ value, 0\);/, 'UI script must define its own sum helper');
+  assert.ok(uiMatch[0].includes("const getPath = (object, path) => path.replace(/\\[(\\d+)\\]/g, '.$1').split('.')"), 'UI form binding must resolve bracketed person paths');
+  assert.match(uiMatch[0], /setupValidationAccessibility\(\); fillForm\(sample\); showErrors\(\[\]\); renderResults\(\);/, 'sample scenario must populate the form on initial load');
   assert.doesNotThrow(() => new vm.Script(uiMatch[0].replace(/^<script>|<\/script>$/g, '')));
 });
 
