@@ -29,6 +29,10 @@
     .legend { display: flex; flex-wrap: wrap; gap: 1rem; font-size: .9rem; }
     .swatch { display: inline-block; width: .8rem; height: .8rem; margin-right: .25rem; }
     .muted { color: #536173; }
+    .disclosure { background: #fff8e6; border: 1px solid #e0bd67; }
+    .disclosure h2 { margin-top: 0; }
+    .disclosure-columns { columns: 2 280px; column-gap: 2rem; }
+    .disclosure-columns > div { break-inside: avoid; }
     @media (max-width: 600px) { main { padding: .5rem; } .panel, .results { padding: .75rem; } }
   </style>
 </head>
@@ -38,6 +42,29 @@
       <h1 id="page-title">UK Retirement Simulator</h1>
       <p>Transparent, deterministic retirement planning for a fictional household.</p>
       <p class="muted">This educational estimate excludes tax, benefits, annuities, detailed pension law, mortality and investment risk.</p>
+    </section>
+
+    <section class="intro disclosure" aria-labelledby="disclosure-title">
+      <h2 id="disclosure-title">Assumptions and limits</h2>
+      <p><strong>Fictional, illustrative starter:</strong> the sample values are editable and are not statistically “typical”. The simulator is a deterministic estimate, not a forecast or advice.</p>
+      <div class="disclosure-columns">
+        <div><h3>What the calculation assumes</h3><ul>
+          <li>Salary and contributions run only before each person's retirement age.</li>
+          <li>Contributions are added before fixed annual private-pension growth.</li>
+          <li>State Pension uses the visible amount and start age entered for each person.</li>
+          <li>Inflation increases essential and preferred spending each year.</li>
+          <li>Income and the visible drawdown order fund spending.</li>
+        </ul></div>
+        <div><h3>What it leaves out</h3><ul>
+          <li>UK tax, National Insurance, Pension Credit and other benefits.</li>
+          <li>Annuities, defined-benefit pensions and multiple pension pots.</li>
+          <li>Property and investments outside private pensions.</li>
+          <li>Detailed contribution limits and pension-law rules.</li>
+          <li>Stochastic returns, fees, mortality and survivor behaviour.</li>
+          <li>Financial, tax, legal or pension advice and suitability assessment.</li>
+        </ul></div>
+      </div>
+      <p class="muted">See <a href="docs/MODEL-METHODOLOGY.md">MODEL-METHODOLOGY.md</a> for the full annual sequence and disclosure. No current State Pension value or age is hard-coded as official policy; those fields are user assumptions.</p>
     </section>
 
     <form id="scenario-form" novalidate>
