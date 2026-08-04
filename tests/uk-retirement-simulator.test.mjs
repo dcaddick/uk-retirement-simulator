@@ -31,6 +31,7 @@ test('UI script remains parseable outside the engine harness', () => {
   const uiMatch = html.match(/<script>\s*\(\(\) => \{\s*const form = document\.querySelector\('#scenario-form'\)[\s\S]*?<\/script>/);
   assert.ok(uiMatch, 'UI script must be present');
   assert.match(uiMatch[0], /const clone = \(value\) => JSON\.parse\(JSON\.stringify\(value\)\);/, 'UI script must define its own clone helper');
+  assert.match(uiMatch[0], /const sum = \(values\) => values\.reduce\(\(total, value\) => total \+ value, 0\);/, 'UI script must define its own sum helper');
   assert.doesNotThrow(() => new vm.Script(uiMatch[0].replace(/^<script>|<\/script>$/g, '')));
 });
 
