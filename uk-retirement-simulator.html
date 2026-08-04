@@ -105,10 +105,165 @@
         return scenario;
       };
 
+      const sum = (values) => values.reduce((total, value) => total + value, 0);
+      const clone = (value) => JSON.parse(JSON.stringify(value));
+      const scaleMoney = (value, factor) => {
+        if (typeof value === 'number') return value / factor;
+        if (Array.isArray(value)) return value.map((item) => scaleMoney(item, factor));
+        if (value && typeof value === 'object') {
+          return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, scaleMoney(item, factor)]));
+        }
+        return value;
+      };
+
+      const projectScenario = (scenario) => {
+        const validation = validateScenario(scenario);
+        if (!validation.valid) throw new Error(`Invalid scenario: ${JSON.stringify(validation.errors)}`);
+
+        const people = scenario.people;
+        const household = scenario.household;
+        const initialAges = people.map((person) => person.age);
+        const anchorAge = Math.max(...initialAges);
+        const years = household.endAge - anchorAge + 1;
+        if (years <= 0) return [];
+
+        const balances = {
+          privatePension: people.map((person) => person.privatePension.pot),
+          savings: scenario.savings.amount,
+          cash: scenario.cash.amount
+        };
+        const firstDepletionYear = {
+          privatePension: people.map(() => null),
+          savings: null,
+          cash: null
+        };
+        const rows = [];
+
+        for (let yearIndex = 0; yearIndex < years; yearIndex += 1) {
+          const year = scenario.startYear + yearIndex;
+          const ages = initialAges.map((age) => age + yearIndex);
+          const salary = people.map((person, index) => ages[index] < person.retirementAge ? person.salary : 0);
+          const contributions = people.map((person, index) => ages[index] < person.retirementAge ? person.annualPensionContribution : 0);
+
+          // Contributions are added before growth; salary remains income and is not silently saved.
+          const privateGrowth = people.map((person, index) => {
+            const growthBase = balances.privatePension[index] + contributions[index];
+            const growth = growthBase * person.privatePension.growthPct / 100;
+            balances.privatePension[index] = growthBase + growth;
+            return growth;
+          });
+          const savingsGrowth = balances.savings * scenario.savings.interestPct / 100;
+          const cashGrowth = balances.cash * scenario.cash.interestPct / 100;
+          balances.savings += savingsGrowth;
+          balances.cash += cashGrowth;
+
+          const statePension = people.map((person, index) => ages[index] >= person.statePension.startAge ? person.statePension.annualAmount : 0);
+          const income = {
+            salary: sum(salary),
+            statePension: sum(statePension),
+            total: sum(salary) + sum(statePension)
+          };
+          const inflationFactor = (1 + household.inflationPct / 100) ** yearIndex;
+          const preferred = household.preferredAnnual * inflationFactor;
+          const essential = household.essentialAnnual * inflationFactor;
+          const draws = {
+            privatePension: people.map(() => 0),
+            savings: 0,
+            cash: 0,
+            total: 0
+          };
+          let required = Math.max(0, preferred - income.total);
+
+          const drawSource = (available, assign) => {
+            const amount = Math.min(available, required);
+            assign(amount);
+            required -= amount;
+            draws.total += amount;
+          };
+
+          for (const priority of household.drawdownPriority) {
+            if (required <= 0) break;
+            if (priority === 'privatePension') {
+              for (let index = 0; index < people.length && required > 0; index += 1) {
+                drawSource(balances.privatePension[index], (amount) => {
+                  draws.privatePension[index] = amount;
+                  balances.privatePension[index] -= amount;
+                });
+              }
+            } else if (priority === 'savings') {
+              drawSource(balances.savings, (amount) => {
+                draws.savings = amount;
+                balances.savings -= amount;
+              });
+            } else if (priority === 'cash') {
+              drawSource(balances.cash, (amount) => {
+                draws.cash = amount;
+                balances.cash -= amount;
+              });
+            }
+          }
+
+          balances.privatePension = balances.privatePension.map((balance) => Math.max(0, balance));
+          balances.savings = Math.max(0, balances.savings);
+          balances.cash = Math.max(0, balances.cash);
+          const totalIncomeAndDraws = income.total + draws.total;
+          const spending = {
+            preferred,
+            essential,
+            availableIncome: income.total,
+            funded: Math.min(preferred, totalIncomeAndDraws),
+            preferredShortfall: Math.max(0, preferred - totalIncomeAndDraws),
+            essentialCovered: totalIncomeAndDraws >= essential,
+            essentialShortfall: Math.max(0, essential - totalIncomeAndDraws),
+            surplus: Math.max(0, totalIncomeAndDraws - preferred)
+          };
+          const depletion = {
+            privatePension: balances.privatePension.map((balance, index) => {
+              const depleted = balance === 0;
+              if (depleted && firstDepletionYear.privatePension[index] === null) firstDepletionYear.privatePension[index] = year;
+              return depleted;
+            }),
+            savings: balances.savings === 0,
+            cash: balances.cash === 0
+          };
+          if (depletion.savings && firstDepletionYear.savings === null) firstDepletionYear.savings = year;
+          if (depletion.cash && firstDepletionYear.cash === null) firstDepletionYear.cash = year;
+
+          const nominal = {
+            salary: clone(salary),
+            contributions: clone(contributions),
+            statePension: clone(statePension),
+            income: clone(income),
+            growth: { privatePension: clone(privateGrowth), savings: savingsGrowth, cash: cashGrowth },
+            draws: clone(draws),
+            balances: clone(balances),
+            spending: clone(spending)
+          };
+          rows.push({
+            year,
+            ages,
+            salary,
+            contributions,
+            statePension,
+            income,
+            growth: nominal.growth,
+            draws,
+            balances: nominal.balances,
+            spending,
+            depletion,
+            depletionYear: clone(firstDepletionYear),
+            nominal,
+            todaysMoney: scaleMoney(nominal, inflationFactor)
+          });
+        }
+        return rows;
+      };
+
       globalThis.SCHEMA_VERSION = SCHEMA_VERSION;
       globalThis.sampleScenario = sampleScenario;
       globalThis.validateScenario = validateScenario;
       globalThis.migrateScenario = migrateScenario;
+      globalThis.projectScenario = projectScenario;
     })();
     /* ENGINE_END */
   </script>
