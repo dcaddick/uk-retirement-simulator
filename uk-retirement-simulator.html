@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>UK Retirement Simulator</title>
+</head>
+<body>
+  <main>
+    <h1>UK Retirement Simulator</h1>
+    <p>Transparent, deterministic retirement planning for a fictional household.</p>
+  </main>
+
+  <script>
+    /* ENGINE_START */
+    (() => {
+      const SCHEMA_VERSION = 1;
+      const PRIORITIES = ['privatePension', 'savings', 'cash'];
+
+      const sampleScenario = () => ({
+        schemaVersion: SCHEMA_VERSION,
+        currency: 'GBP',
+        startYear: 2026,
+        household: {
+          essentialAnnual: 30000,
+          preferredAnnual: 36000,
+          inflationPct: 2.5,
+          endAge: 90,
+          drawdownPriority: [...PRIORITIES]
+        },
+        people: [
+          {
+            name: 'Person 1', age: 58, retirementAge: 60,
+            salary: 45000, annualPensionContribution: 9000,
+            privatePension: { pot: 180000, growthPct: 4.5 },
+            statePension: { startAge: 67, annualAmount: 12500 }
+          },
+          {
+            name: 'Person 2', age: 56, retirementAge: 60,
+            salary: 30000, annualPensionContribution: 6000,
+            privatePension: { pot: 120000, growthPct: 4.5 },
+            statePension: { startAge: 67, annualAmount: 12500 }
+          }
+        ],
+        cash: { amount: 15000, interestPct: 0 },
+        savings: { amount: 50000, interestPct: 3 }
+      });
+
+      const validateScenario = (scenario) => {
+        const errors = [];
+        const error = (field, message) => errors.push({ field, message });
+        const nonNegative = (value, field) => {
+          if (typeof value !== 'number' || !Number.isFinite(value)) error(field, 'must be a finite number');
+          else if (value < 0) error(field, 'must not be negative');
+        };
+
+        if (!scenario || typeof scenario !== 'object') return { valid: false, errors: [{ field: 'scenario', message: 'must be an object' }] };
+        if (scenario.schemaVersion !== SCHEMA_VERSION) error('schemaVersion', 'must be 1');
+        if (scenario.currency !== 'GBP') error('currency', 'must be GBP');
+        if (!Number.isInteger(scenario.startYear)) error('startYear', 'must be an integer');
+
+        const household = scenario.household;
+        if (!household || typeof household !== 'object') error('household', 'is required');
+        else {
+          nonNegative(household.essentialAnnual, 'household.essentialAnnual');
+          nonNegative(household.preferredAnnual, 'household.preferredAnnual');
+          nonNegative(household.inflationPct, 'household.inflationPct');
+          nonNegative(household.endAge, 'household.endAge');
+          if (household.preferredAnnual < household.essentialAnnual) error('household.preferredAnnual', 'must be at least household.essentialAnnual');
+          if (!Array.isArray(household.drawdownPriority) || household.drawdownPriority.length !== 3 || new Set(household.drawdownPriority).size !== 3 || household.drawdownPriority.some((value) => !PRIORITIES.includes(value))) {
+            error('household.drawdownPriority', 'must contain privatePension, savings and cash exactly once');
+          }
+        }
+
+        if (!Array.isArray(scenario.people) || scenario.people.length === 0) error('people', 'must contain at least one person');
+        else scenario.people.forEach((person, index) => {
+          const field = (name) => `people[${index}].${name}`;
+          if (typeof person.name !== 'string' || !person.name.trim()) error(field('name'), 'is required');
+          nonNegative(person.age, field('age'));
+          nonNegative(person.retirementAge, field('retirementAge'));
+          nonNegative(person.salary, field('salary'));
+          nonNegative(person.annualPensionContribution, field('annualPensionContribution'));
+          if (!person.privatePension || typeof person.privatePension !== 'object') error(field('privatePension'), 'is required');
+          else { nonNegative(person.privatePension.pot, field('privatePension.pot')); nonNegative(person.privatePension.growthPct, field('privatePension.growthPct')); }
+          if (!person.statePension || typeof person.statePension !== 'object') error(field('statePension'), 'is required');
+          else { nonNegative(person.statePension.startAge, field('statePension.startAge')); nonNegative(person.statePension.annualAmount, field('statePension.annualAmount')); }
+        });
+
+        for (const name of ['cash', 'savings']) {
+          if (!scenario[name] || typeof scenario[name] !== 'object') error(name, 'is required');
+          else { nonNegative(scenario[name].amount, `${name}.amount`); nonNegative(scenario[name].interestPct, `${name}.interestPct`); }
+        }
+        return { valid: errors.length === 0, errors };
+      };
+
+      const migrateScenario = (raw) => {
+        const scenario = JSON.parse(JSON.stringify(raw));
+        if (scenario.schemaVersion === undefined) scenario.schemaVersion = SCHEMA_VERSION;
+        if (scenario.currency === undefined) scenario.currency = 'GBP';
+        if (scenario.household && scenario.household.drawdownPriority === undefined) scenario.household.drawdownPriority = [...PRIORITIES];
+        return scenario;
+      };
+
+      globalThis.SCHEMA_VERSION = SCHEMA_VERSION;
+      globalThis.sampleScenario = sampleScenario;
+      globalThis.validateScenario = validateScenario;
+      globalThis.migrateScenario = migrateScenario;
+    })();
+    /* ENGINE_END */
+  </script>
+</body>
+</html>
