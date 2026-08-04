@@ -7,6 +7,26 @@ import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const html = fs.readFileSync(path.join(root, 'uk-retirement-simulator.html'), 'utf8');
+test('UK MVP markup exposes the focused interface without network dependencies', () => {
+  const sections = ['Scenario', 'Person 1', 'Person 2', 'Cash and savings', 'Drawdown order', 'Assumptions'];
+  let previous = -1;
+  for (const section of sections) {
+    const position = html.indexOf(`<h2>${section}</h2>`);
+    assert.ok(position > previous, `section ${section} is missing or out of order`);
+    previous = position;
+  }
+  for (const hook of ['scenario-form', 'summary', 'annual-chart', 'results-table', 'display-mode', 'save-scenario', 'load-scenario', 'export-scenario', 'import-scenario']) {
+    assert.match(html, new RegExp(`(?:id|data-field)=["']${hook}`), `missing interface hook ${hook}`);
+  }
+  assert.doesNotMatch(html, /\b(fetch|XMLHttpRequest|WebSocket)\b|https?:\/\//, 'the MVP must not make network requests');
+});
+
+test('UI script remains parseable outside the engine harness', () => {
+  const uiMatch = html.match(/<script>\s*\(\(\) => \{\s*const form = document\.querySelector\('#scenario-form'\)[\s\S]*?<\/script>/);
+  assert.ok(uiMatch, 'UI script must be present');
+  assert.doesNotThrow(() => new vm.Script(uiMatch[0].replace(/^<script>|<\/script>$/g, '')));
+});
+
 const match = html.match(/\/\* ENGINE_START \*\/([\s\S]*?)\/\* ENGINE_END \*\//);
 assert.ok(match, 'HTML must contain marked engine code');
 
