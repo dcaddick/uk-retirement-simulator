@@ -69,6 +69,34 @@ test('validation reports field-specific errors for invalid values', () => {
   }
 });
 
+test('validation rejects fractional ages and cutoffs with field-specific errors', () => {
+  const scenario = sampleScenario();
+  scenario.household.endAge = 90.5;
+  scenario.people[0].age = 58.5;
+  scenario.people[0].retirementAge = 60.5;
+  scenario.people[0].statePension.startAge = 67.5;
+
+  const result = validateScenario(scenario);
+  assert.equal(result.valid, false);
+  for (const field of [
+    'household.endAge',
+    'people[0].age',
+    'people[0].retirementAge',
+    'people[0].statePension.startAge'
+  ]) {
+    assert.ok(result.errors.some((error) => error.field === field && error.message === 'must be an integer'), `missing integer error for ${field}`);
+  }
+});
+
+test('validation rejects an end age below the oldest current person age', () => {
+  const scenario = sampleScenario();
+  scenario.household.endAge = 57;
+
+  const result = validateScenario(scenario);
+  assert.equal(result.valid, false);
+  assert.ok(result.errors.some((error) => error.field === 'household.endAge' && error.message === 'must be at least the oldest current person age'));
+});
+
 test('validation reports malformed person entries without throwing', () => {
   const scenario = sampleScenario();
   scenario.people = [null, 'not a person'];

@@ -53,6 +53,10 @@
           if (typeof value !== 'number' || !Number.isFinite(value)) error(field, 'must be a finite number');
           else if (value < 0) error(field, 'must not be negative');
         };
+        const nonNegativeInteger = (value, field) => {
+          nonNegative(value, field);
+          if (typeof value === 'number' && Number.isFinite(value) && !Number.isInteger(value)) error(field, 'must be an integer');
+        };
 
         if (!scenario || typeof scenario !== 'object') return { valid: false, errors: [{ field: 'scenario', message: 'must be an object' }] };
         if (scenario.schemaVersion !== SCHEMA_VERSION) error('schemaVersion', 'must be 1');
@@ -65,7 +69,7 @@
           nonNegative(household.essentialAnnual, 'household.essentialAnnual');
           nonNegative(household.preferredAnnual, 'household.preferredAnnual');
           nonNegative(household.inflationPct, 'household.inflationPct');
-          nonNegative(household.endAge, 'household.endAge');
+          nonNegativeInteger(household.endAge, 'household.endAge');
           if (household.preferredAnnual < household.essentialAnnual) error('household.preferredAnnual', 'must be at least household.essentialAnnual');
           if (!Array.isArray(household.drawdownPriority) || household.drawdownPriority.length !== 3 || new Set(household.drawdownPriority).size !== 3 || household.drawdownPriority.some((value) => !PRIORITIES.includes(value))) {
             error('household.drawdownPriority', 'must contain privatePension, savings and cash exactly once');
@@ -80,15 +84,24 @@
             return;
           }
           if (typeof person.name !== 'string' || !person.name.trim()) error(field('name'), 'is required');
-          nonNegative(person.age, field('age'));
-          nonNegative(person.retirementAge, field('retirementAge'));
+          nonNegativeInteger(person.age, field('age'));
+          nonNegativeInteger(person.retirementAge, field('retirementAge'));
           nonNegative(person.salary, field('salary'));
           nonNegative(person.annualPensionContribution, field('annualPensionContribution'));
           if (!person.privatePension || typeof person.privatePension !== 'object') error(field('privatePension'), 'is required');
           else { nonNegative(person.privatePension.pot, field('privatePension.pot')); nonNegative(person.privatePension.growthPct, field('privatePension.growthPct')); }
           if (!person.statePension || typeof person.statePension !== 'object') error(field('statePension'), 'is required');
-          else { nonNegative(person.statePension.startAge, field('statePension.startAge')); nonNegative(person.statePension.annualAmount, field('statePension.annualAmount')); }
+          else { nonNegativeInteger(person.statePension.startAge, field('statePension.startAge')); nonNegative(person.statePension.annualAmount, field('statePension.annualAmount')); }
         });
+
+        if (scenario.household && typeof scenario.household === 'object' && Array.isArray(scenario.people)) {
+          const currentAges = scenario.people
+            .filter((person) => person && typeof person === 'object' && typeof person.age === 'number' && Number.isFinite(person.age))
+            .map((person) => person.age);
+          if (currentAges.length > 0 && typeof scenario.household.endAge === 'number' && Number.isFinite(scenario.household.endAge) && scenario.household.endAge < Math.max(...currentAges)) {
+            error('household.endAge', 'must be at least the oldest current person age');
+          }
+        }
 
         for (const name of ['cash', 'savings']) {
           if (!scenario[name] || typeof scenario[name] !== 'object') error(name, 'is required');
