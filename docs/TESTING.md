@@ -35,7 +35,7 @@ Edge, or Firefox. No server or network connection is required.
 
 ### Completed browser verification — 2026-08-04
 
-Against final implementation commit `915d6b6`, including the browser fixes:
+Against the verified feature-branch head, including the browser fixes:
 
 - A local HTTP page loaded successfully, and the starter Person 1 and Person 2
   fields were populated.
