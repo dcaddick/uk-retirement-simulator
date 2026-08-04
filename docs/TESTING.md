@@ -21,6 +21,13 @@ and today's-money conversion.
 
 Expected result: all tests pass and `git diff --check` prints no findings.
 
+Direct verification outside the restricted launcher completed successfully:
+
+```text
+node tests/uk-retirement-simulator.test.mjs
+Result: 21 tests, 21 passed, 0 failed, duration 21.6441ms.
+```
+
 ## Real-browser verification
 
 Open `uk-retirement-simulator.html` directly in a current desktop Chrome,
