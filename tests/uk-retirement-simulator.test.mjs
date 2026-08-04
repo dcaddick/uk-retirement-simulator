@@ -18,6 +18,11 @@ test('UK MVP markup exposes the focused interface without network dependencies',
   for (const hook of ['scenario-form', 'summary', 'annual-chart', 'results-table', 'display-mode', 'save-scenario', 'load-scenario', 'export-scenario', 'import-scenario']) {
     assert.match(html, new RegExp(`(?:id|data-field)=["']${hook}`), `missing interface hook ${hook}`);
   }
+  assert.match(html, /setupValidationAccessibility/);
+  assert.match(html, /setAttribute\('aria-invalid', 'false'\)/);
+  assert.match(html, /setAttribute\('aria-invalid', 'true'\)/);
+  assert.match(html, /setAttribute\('aria-describedby'/);
+  assert.match(html, /Could not save locally:/);
   assert.doesNotMatch(html, /\b(fetch|XMLHttpRequest|WebSocket)\b|https?:\/\//, 'the MVP must not make network requests');
 });
 
@@ -66,6 +71,16 @@ test('sample scenario is a valid two-person GBP scenario', () => {
     savings: { amount: 50000, interestPct: 3 }
   });
   assert.deepEqual(validateScenario(scenario), { valid: true, errors: [] });
+});
+
+test('validation requires exactly two people for the fixed MVP interface', () => {
+  for (const count of [0, 1, 3]) {
+    const scenario = sampleScenario();
+    scenario.people = scenario.people.slice(0, count);
+    if (count === 3) scenario.people.push({ ...sampleScenario().people[0], name: 'Person 3' });
+    const result = validateScenario(scenario);
+    assert.ok(result.errors.some((error) => error.field === 'people' && error.message === 'must contain exactly two people'), `missing exact-size error for ${count} people`);
+  }
 });
 
 test('validation reports field-specific errors for invalid values', () => {
@@ -177,6 +192,10 @@ test('grows assets before the annual draw and respects configured drawdown prior
     name: 'Test', age: 60, retirementAge: 60, salary: 0, annualPensionContribution: 0,
     privatePension: { pot: 1000, growthPct: 10 },
     statePension: { startAge: 70, annualAmount: 0 }
+  }, {
+    name: 'Second test person', age: 60, retirementAge: 60, salary: 0, annualPensionContribution: 0,
+    privatePension: { pot: 0, growthPct: 0 },
+    statePension: { startAge: 70, annualAmount: 0 }
   }];
   scenario.savings = { amount: 50, interestPct: 10 };
   scenario.cash = { amount: 25, interestPct: 0 };
@@ -204,6 +223,10 @@ test('reports depletion, essential shortfall, nominal audit values and today mon
     name: 'Test', age: 60, retirementAge: 60, salary: 0, annualPensionContribution: 0,
     privatePension: { pot: 0, growthPct: 0 },
     statePension: { startAge: 70, annualAmount: 0 }
+  }, {
+    name: 'Second test person', age: 60, retirementAge: 60, salary: 0, annualPensionContribution: 0,
+    privatePension: { pot: 0, growthPct: 0 },
+    statePension: { startAge: 70, annualAmount: 0 }
   }];
   scenario.savings = { amount: 50, interestPct: 0 };
   scenario.cash = { amount: 25, interestPct: 0 };
@@ -215,7 +238,7 @@ test('reports depletion, essential shortfall, nominal audit values and today mon
   assert.equal(rows[0].spending.preferredShortfall, 45);
   assert.equal(rows[0].spending.essentialShortfall, 45);
   assert.equal(rows[0].spending.essentialCovered, false);
-  assert.deepEqual(rows[0].depletion, { privatePension: [true], savings: true, cash: true });
+  assert.deepEqual(rows[0].depletion, { privatePension: [true, true], savings: true, cash: true });
   assert.equal(rows[0].nominal.spending.preferred, 120);
   assert.ok(Math.abs(rows[0].todaysMoney.spending.preferred - 120) < 1e-9);
   assert.equal(rows[1].nominal.spending.preferred, 132);

@@ -54,6 +54,7 @@
           <button type="button" id="import-scenario">Import JSON</button>
           <input id="import-file" type="file" accept="application/json" hidden>
         </div>
+        <span class="error" data-error-for="people" id="people-error" role="alert"></span>
         <p class="notice" id="action-status" role="status" aria-live="polite"></p>
       </fieldset>
 
@@ -185,7 +186,7 @@
           }
         }
 
-        if (!Array.isArray(scenario.people) || scenario.people.length === 0) error('people', 'must contain at least one person');
+        if (!Array.isArray(scenario.people) || scenario.people.length !== 2) error('people', 'must contain exactly two people');
         else scenario.people.forEach((person, index) => {
           const field = (name) => `people[${index}].${name}`;
           if (!person || typeof person !== 'object' || Array.isArray(person)) {
@@ -398,6 +399,7 @@
       let displayMode = 'nominal';
       const currency = new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP', maximumFractionDigits: 0 });
       const number = (value) => Number.isFinite(value) ? currency.format(value) : '—';
+      const fieldId = (field) => `field-${field.replace(/\[(\d+)\]/g, '-$1').replace(/[^a-zA-Z0-9]+/g, '-')}`;
       const getPath = (object, path) => path.split('.').reduce((value, part) => value?.[part], object);
       const setPath = (object, path, value) => {
         const parts = path.replace(/\[(\d+)\]/g, '.$1').split('.');
@@ -414,11 +416,31 @@
         scenario.household.drawdownPriority = [...form.querySelectorAll('[data-priority-index]')].sort((a, b) => a.dataset.priorityIndex - b.dataset.priorityIndex).map((input) => input.value);
         return scenario;
       };
+      const setupValidationAccessibility = () => {
+        form.querySelectorAll('[data-field]').forEach((input) => {
+          const error = Array.from(form.querySelectorAll('[data-error-for]')).find((node) => node.dataset.errorFor === input.dataset.field);
+          input.id = fieldId(input.dataset.field);
+          input.setAttribute('aria-invalid', 'false');
+          if (error) { error.id = `${input.id}-error`; input.setAttribute('aria-describedby', error.id); }
+        });
+        form.querySelectorAll('[data-priority-index]').forEach((input) => {
+          input.id = `drawdown-priority-${input.dataset.priorityIndex}`;
+          input.setAttribute('aria-invalid', 'false');
+          input.setAttribute('aria-describedby', 'drawdown-priority-error');
+        });
+        const priorityError = form.querySelector('[data-error-for="household.drawdownPriority"]');
+        if (priorityError) priorityError.id = 'drawdown-priority-error';
+      };
       const showErrors = (errors) => {
         form.querySelectorAll('[data-error-for]').forEach((node) => { node.textContent = ''; });
+        form.querySelectorAll('[data-field], [data-priority-index]').forEach((input) => { input.setAttribute('aria-invalid', 'false'); });
         errors.forEach(({ field, message }) => {
-          const node = form.querySelector(`[data-error-for="${field}"]`);
+          const node = Array.from(form.querySelectorAll('[data-error-for]')).find((candidate) => candidate.dataset.errorFor === field);
           if (node) node.textContent = message;
+          const inputs = field === 'household.drawdownPriority'
+            ? form.querySelectorAll('[data-priority-index]')
+            : Array.from(form.querySelectorAll('[data-field]')).filter((input) => input.dataset.field === field);
+          inputs.forEach((input) => { input.setAttribute('aria-invalid', 'true'); });
         });
       };
       const fillForm = (scenario) => {
@@ -485,7 +507,10 @@
       const download = (name, content) => { const link = document.createElement('a'); link.href = URL.createObjectURL(new Blob([content], { type: 'application/json' })); link.download = name; link.click(); URL.revokeObjectURL(link.href); };
       form.addEventListener('input', recalculate); form.addEventListener('change', recalculate);
       document.querySelector('#display-mode').addEventListener('change', (event) => { displayMode = event.target.value; renderResults(); });
-      document.querySelector('#save-scenario').addEventListener('click', () => { localStorage.setItem('uk-retirement-simulator-scenario', JSON.stringify(lastValidScenario)); setStatus('Saved locally on this device.'); });
+      document.querySelector('#save-scenario').addEventListener('click', () => {
+        try { localStorage.setItem('uk-retirement-simulator-scenario', JSON.stringify(lastValidScenario)); setStatus('Saved locally on this device.'); }
+        catch (error) { setStatus(`Could not save locally: ${error.message}. Current valid projection unchanged.`); }
+      });
       document.querySelector('#load-scenario').addEventListener('click', () => {
         try {
           const saved = localStorage.getItem('uk-retirement-simulator-scenario');
@@ -506,7 +531,7 @@
           event.target.value = '';
         }; reader.readAsText(file);
       });
-      fillForm(sample); renderResults();
+      setupValidationAccessibility(); fillForm(sample); showErrors([]); renderResults();
     })();
   </script>
 </body>
