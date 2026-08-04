@@ -33,6 +33,27 @@ Result: 21 tests, 21 passed, 0 failed, duration 21.6441ms.
 Open `uk-retirement-simulator.html` directly in a current desktop Chrome,
 Edge, or Firefox. No server or network connection is required.
 
+### Completed browser verification — 2026-08-04
+
+Against implementation commit `da7a4f7540a5513ed3ba25f66fe533b37e9cd2c8`,
+with the browser fixes included through that commit:
+
+- A local HTTP page loaded successfully, and the starter Person 1 and Person 2
+  fields were populated.
+- Entering invalid current age `58.5` produced an accessible error and
+  preserved the last valid projection. Correcting it to `58` cleared the
+  errors and restored live status.
+- The Nominal/Today's money toggle changed future-row values.
+- Local save wrote `uk-retirement-simulator-scenario` and displayed its status.
+- JSON export/download and import round-tripped the fictional scenario and
+  restored it.
+- Responsive checks at `390x844` and `1440x1000` showed no horizontal
+  overflow.
+- The chart SVG and 33-row annual table rendered together; the table caption
+  stated that it contains the exact chart values.
+- Final browser console: 0 errors and 0 warnings. No unexpected runtime
+  network requests occurred; only static page/document requests were seen.
+
 - [ ] The page loads without a console error and shows the Scenario form,
       assumptions, summary, chart and annual table.
 - [ ] Check the responsive layout at a narrow/mobile width and at a desktop
