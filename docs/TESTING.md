@@ -54,9 +54,9 @@ with the browser fixes included through that commit:
 - Final browser console: 0 errors and 0 warnings. No unexpected runtime
   network requests occurred; only static page/document requests were seen.
 
-- [ ] The page loads without a console error and shows the Scenario form,
+- [x] The page loads without a console error and shows the Scenario form,
       assumptions, summary, chart and annual table.
-- [ ] Check the responsive layout at a narrow/mobile width and at a desktop
+- [x] Check the responsive layout at a narrow/mobile width and at a desktop
       width; confirm the form, summary, chart and annual table remain usable.
 - [ ] Enter valid fictional values for both people and click **Run projection**;
       the summary and annual table update.
@@ -68,20 +68,20 @@ with the browser fixes included through that commit:
       the cash drawdown and ending balance are shown without negative values.
 - [ ] Use spending values where essential is lower than preferred; confirm an
       essential-covered result can still show a preferred shortfall.
-- [ ] Change the display selector to **Today’s money** and confirm the table,
+- [x] Change the display selector to **Today’s money** and confirm the table,
       chart and summary values use the selected view.
-- [ ] For the same displayed rows, compare the chart and annual table and
+- [x] For the same displayed rows, compare the chart and annual table and
       confirm they agree on the displayed years and values.
-- [ ] Save locally, reload the page, and load locally; confirm the scenario is
+- [x] Save locally, reload the page, and load locally; confirm the scenario is
       restored. If browser storage is unavailable, confirm the visible error is
       understandable.
-- [ ] Export JSON, import the exported file, and confirm the scenario remains
+- [x] Export JSON, import the exported file, and confirm the scenario remains
       valid and reproducible.
-- [ ] Submit invalid input and confirm field-level messages, `aria-invalid`,
+- [x] Submit invalid input and confirm field-level messages, `aria-invalid`,
       and focus behaviour are usable by keyboard.
-- [ ] Correct the invalid input and confirm the errors clear and the last valid
+- [x] Correct the invalid input and confirm the errors clear and the last valid
       projection returns.
-- [ ] Confirm the console is clean: no errors, warnings or unexpected network
+- [x] Confirm the console is clean: no errors, warnings or unexpected network
       requests; the page works with JavaScript enabled from a local file.
 
 Real-browser execution is a handoff item when a browser session is not
