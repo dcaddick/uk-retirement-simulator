@@ -2,7 +2,7 @@
 
 An early-stage, transparent retirement-income modelling tool for approaching-retirement UK couples.
 
-**Release status: Alpha 0.3.0.** The simulator is an estimate-only work in
+**Release status: Alpha 0.4.0.** The simulator is an estimate-only work in
 progress, not financial, tax, legal or pension advice.
 
 The version shown in the page header matches `CHANGELOG.md`. Quote it when

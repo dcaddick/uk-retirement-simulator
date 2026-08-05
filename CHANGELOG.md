@@ -4,6 +4,37 @@ Version numbering is independent of the release label. The project is Alpha and
 stays Alpha until that is changed deliberately; reaching a particular version
 number does not imply Beta.
 
+## Alpha 0.4.0 - 2026-08-05
+
+Aligns the annual table with the Australian simulator's column names and
+order, per the comparison in #22. Tax, means-tested benefit and
+superannuation-specific columns (Tax, After tax, Franking credits, CGT, Aust.
+Aged Pension, ABP min draw) stay out: they are Australian constructs with no
+UK counterpart. See the decision record in #23 for the reasoning behind every
+deliberate UK/AU difference.
+
+Changed:
+
+- Column order now runs assets first, then income, drawdown and outcome,
+  matching AU. `Total assets` (the same figure previously shown last as
+  `Ending balances`) now leads the row, immediately after each person's age.
+- `Year / age` is split into `Year`, `{Person 1}`, `{Person 2}`, showing both
+  people's ages rather than only the older person's.
+- Added a per-person pension balance column (`{Person 1} pension`, `{Person 2}
+  pension`), matching AU's per-person super columns. Balance columns keep a
+  "balance" suffix (`Cash balance`, `Savings balance`) rather than AU's bare
+  `Cash`/`Savings`, because UK also has separate per-source drawdown columns
+  and a bare duplicate heading would be ambiguous between the two.
+- Replaced the `Lump sum withdrawn` value column with an `Event` column
+  naming the withdrawal, matching AU's treatment of one-off withdrawals as a
+  labelled event rather than a value column.
+- Replaced `Preferred shortfall` with a trailing `+/-` column showing `ok` or
+  the shortfall amount, matching AU.
+
+The scenario schema, validation rules and projection engine are unchanged, so
+a saved or exported scenario still loads and projects the same figures; only
+the table's presentation changes.
+
 ## Alpha 0.3.0 - 2026-08-05
 
 Fixed:

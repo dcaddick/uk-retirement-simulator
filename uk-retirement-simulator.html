@@ -182,7 +182,7 @@
   <div class="top-notice">Local, reproducible UK retirement planning. Estimate only; not financial, tax or pension advice.</div>
   <header>
     <div class="header-row">
-      <div><h1 id="page-title">UK Retirement Simulator <span class="muted">Alpha 0.3.0</span></h1><p>A transparent two-person household projection. Working estimate, not financial advice.</p></div>
+      <div><h1 id="page-title">UK Retirement Simulator <span class="muted">Alpha 0.4.0</span></h1><p>A transparent two-person household projection. Working estimate, not financial advice.</p></div>
       <nav class="header-actions" aria-label="Scenario actions">
         <button type="button" id="new-scenario-header">New</button>
         <button type="button" id="save-scenario-header">Save locally</button>
@@ -288,7 +288,7 @@
       <div class="chart-frame"><svg id="annual-chart" viewBox="0 0 1000 350" role="img" aria-label="Annual income, drawdown and spending target chart"></svg><div id="chart-tooltip" class="chart-tooltip" role="tooltip" hidden></div></div>
       <div class="chart-toolbar"><label class="display-control" for="display-mode">Display <select id="display-mode"><option value="todaysMoney">Today’s pounds (2026)</option><option value="nominal">Future pounds</option></select></label></div>
       <h3>Annual detail</h3>
-      <div class="table-wrap"><table id="results-table"><caption class="muted">The table provides the exact values represented in the chart. Salary and State Pension are income; drawdown tops up the remaining gap to the household targets, while ending balances show the remaining assets.</caption><thead></thead><tbody></tbody></table></div>
+      <div class="table-wrap"><table id="results-table"><caption class="muted">The table provides the exact values represented in the chart, ordered assets first then income, drawdown and outcome. Salary and State Pension are income; drawdown tops up the remaining gap to the household spending target. Event names any lump-sum withdrawal that year; +/- shows “ok” or the shortfall against the preferred target.</caption><thead></thead><tbody></tbody></table></div>
       </section>
       <details class="assumptions">
         <summary>Model assumptions and limits</summary>
@@ -983,12 +983,24 @@
         svg.onfocusin = (event) => showTooltip(event.target.closest?.('[data-chart-tooltip]'));
         svg.onfocusout = hideTooltip;
       };
+      // Column order follows the Australian simulator: assets first (led by the
+      // Total assets summary), then income, drawdown and outcome. Balance columns
+      // keep a "balance" suffix rather than AU's bare "Cash"/"Savings", because UK
+      // also has separate per-source drawdown columns and a bare duplicate heading
+      // would be ambiguous. Tax, means-tested benefit and franking/CGT columns stay
+      // out: they are Australian tax and superannuation constructs with no UK
+      // counterpart (see the decision record in #23).
       const renderTable = () => {
         const head = document.querySelector('#results-table thead'); const body = document.querySelector('#results-table tbody');
-        head.innerHTML = '<tr><th>Year / age</th><th>Salary income</th><th>State Pension</th><th>Lump sum withdrawn</th><th>Private drawdown</th><th>Savings drawdown</th><th>Cash drawdown</th><th>Essential spending</th><th>Preferred shortfall</th><th>Private pension balance</th><th>Savings balance</th><th>Cash balance</th><th>Ending balances</th></tr>';
+        const people = lastValidScenario.people;
+        head.innerHTML = `<tr><th>Year</th><th>${escapeHtml(people[0].name)}</th><th>${escapeHtml(people[1].name)}</th><th>Total assets</th><th>${escapeHtml(people[0].name)} pension</th><th>${escapeHtml(people[1].name)} pension</th><th>Cash balance</th><th>Savings balance</th><th>Salary income</th><th>State Pension</th><th>Private drawdown</th><th>Savings drawdown</th><th>Cash drawdown</th><th>Essential spending</th><th>Event</th><th>+/-</th></tr>`;
         body.innerHTML = lastProjection.map((row) => {
-          const item = selectedRow(row); const privateDraw = sum(item.draws.privatePension); const balance = sum(item.balances.privatePension) + item.balances.savings + item.balances.cash;
-          return `<tr><th scope="row">${row.year} / ${Math.max(...row.ages)}</th><td>${number(item.income.salary)}</td><td>${number(sum(item.statePension))}</td><td>${number(item.income.lumpSum)}</td><td>${number(privateDraw)}</td><td>${number(item.draws.savings)}</td><td>${number(item.draws.cash)}</td><td>${number(item.spending.essential)}</td><td>${number(item.spending.preferredShortfall)}</td><td>${number(sum(item.balances.privatePension))}</td><td>${number(item.balances.savings)}</td><td>${number(item.balances.cash)}</td><td>${number(balance)}</td></tr>`;
+          const item = selectedRow(row);
+          const privateDraw = sum(item.draws.privatePension);
+          const totalAssets = sum(item.balances.privatePension) + item.balances.savings + item.balances.cash;
+          const eventText = (item.lumpSumWithdrawals || []).filter((event) => event.drawn > 0).map((event) => `${event.label} (${number(event.drawn)})`).join('; ');
+          const status = item.spending.preferredShortfall > 0 ? `-${number(item.spending.preferredShortfall)}` : 'ok';
+          return `<tr><th scope="row">${row.year}</th><td>${row.ages[0] ?? ''}</td><td>${row.ages[1] ?? ''}</td><td>${number(totalAssets)}</td><td>${number(item.balances.privatePension[0])}</td><td>${number(item.balances.privatePension[1])}</td><td>${number(item.balances.cash)}</td><td>${number(item.balances.savings)}</td><td>${number(item.income.salary)}</td><td>${number(sum(item.statePension))}</td><td>${number(privateDraw)}</td><td>${number(item.draws.savings)}</td><td>${number(item.draws.cash)}</td><td>${number(item.spending.essential)}</td><td>${escapeHtml(eventText || '-')}</td><td>${status}</td></tr>`;
         }).join('');
       };
       const renderResults = () => { renderSummary(); renderChart(); renderTable(); };
