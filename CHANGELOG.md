@@ -1,5 +1,36 @@
 # Changelog
 
+## Alpha 0.2.0 - 2026-08-05
+
+Presentation-layer pass closing UI gaps against the Australian simulator. The
+scenario schema, validation rules and projection engine are unchanged, so a
+scenario saved or exported by the previous Alpha loads unaltered.
+
+Added:
+
+- Light theme and a header toggle, persisted locally. Every colour, including
+  the chart series, now resolves from a custom property and follows the theme.
+- A resizable input panel with a draggable and keyboard-operable separator,
+  persisted locally.
+- A validation summary listing every current error, each entry opening its
+  panel and focusing the field.
+- An in-page confirmation dialog gating New and Load locally.
+- Status colour on the four headline cards and a success state for alerts.
+- Breakpoints at 1200px and 480px, 44px touch targets under `pointer: coarse`,
+  and `prefers-reduced-motion` support.
+- Explanatory text under the sidebar panel headings and an asset-class accent
+  on Cash and savings.
+
+Changed:
+
+- Focus rings moved from `:focus` to `:focus-visible`, so they read as a
+  keyboard affordance rather than firing on every mouse click.
+- Invalid fields now carry a visible border and ring, not only `aria-invalid`.
+- The disclosure chevron rotates rather than swapping between two glyphs.
+
+The release stays Alpha. Version numbering starts here so tester feedback can
+be tied to a build; the previous release is retrospectively 0.1.x.
+
 ## Alpha - 2026-08-05
 
 Added dated lump-sum withdrawals, Australian-style Income/Balance chart views,

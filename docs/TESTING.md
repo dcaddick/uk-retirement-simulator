@@ -102,3 +102,36 @@ Against the verified feature-branch head, including the browser fixes:
 The completed browser verification above covers the items marked `[x]`.
 The remaining unchecked scenario-specific cases are follow-up coverage for
 testers and contributors; they are not claimed as complete evidence here.
+
+## Alpha 0.2.0 UI verification
+
+The 0.2.0 release is a presentation-layer change. The engine, schema and
+validation rules are untouched, so the automated suite above is unchanged and
+still passes at 24 of 24.
+
+The interface changes were driven in headless Chromium against the local file.
+Twenty-seven checks passed with no console or page errors:
+
+- Baseline render: four summary cards, chart bars, and 33 annual table rows.
+- Summary cards carry a status class and the colour resolves; chart series
+  fills resolve from custom properties rather than a literal `var()` string.
+- Theme toggle flips `data-theme`, changes the resolved background, updates
+  `aria-pressed`, re-renders the chart in the new palette, and survives reload.
+- Validation summary appears on invalid input, names the field using its
+  visible label, focuses the field when its entry is activated, and clears when
+  the input is corrected. Invalid fields carry a visible ring.
+- Confirmation dialog opens on New and Load locally, takes initial focus,
+  closes on Escape, preserves the scenario when cancelled, restores focus to the
+  invoking button, and resets the scenario when confirmed.
+- Separator resizes the input panel by keyboard and the width survives reload.
+- At a 390px viewport the separator is hidden and the page does not scroll
+  horizontally.
+
+Evidence: `output/playwright/uk-alpha-0.2.0-dark.png`,
+`uk-alpha-0.2.0-light.png` and `uk-alpha-0.2.0-mobile-390.png`.
+
+One defect was found and fixed during this pass. Blurring a field fires
+`change`, which recalculates and rebuilt the validation summary; that destroyed
+the entry the user was clicking, so activating it did nothing. The summary is
+now rebuilt only when the error set actually changes, and its click handling is
+delegated so it survives a rebuild.
