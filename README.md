@@ -2,8 +2,12 @@
 
 An early-stage, transparent retirement-income modelling tool for approaching-retirement UK couples.
 
-**Release status: Alpha.** The simulator is an estimate-only work in progress,
-not financial, tax, legal or pension advice.
+**Release status: Alpha 0.2.0.** The simulator is an estimate-only work in
+progress, not financial, tax, legal or pension advice.
+
+The version shown in the page header matches `CHANGELOG.md`. Quote it when
+reporting feedback, since the app is distributed as a single file that users
+save locally.
 
 The project will remain Alpha while it gathers definitive feedback from UK
 users. A future Beta label will require that feedback and a separate review of
@@ -17,6 +21,11 @@ for the annual calculation sequence, assumptions and deliberate exclusions.
 
 No build step or server is required. Open `uk-retirement-simulator.html` directly
 in a modern browser. The page is self-contained and makes no network requests.
+
+The page opens in a dark theme; use **Light theme** in the header to switch.
+The theme and the input-panel width are remembered on this device. Drag the
+divider between the inputs and the results to resize, or focus it and use the
+left and right arrow keys.
 
 The starter scenario is fictional and illustrative, not statistically typical.
 All assumptions are visible and editable in the page. Use **Save locally** and

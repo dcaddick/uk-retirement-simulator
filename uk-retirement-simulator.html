@@ -6,11 +6,38 @@
   <title>UK Retirement Simulator</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%23172033'/%3E%3Cpath d='M4 11h8M5 8h6M6 5h4' stroke='%23fff' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E">
   <style>
-    :root { color-scheme: dark; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; line-height: 1.4; --bg: #0d1721; --panel: #162431; --panel-2: #1b2b39; --line: #2b3d4f; --text: #e7eef5; --muted: #9fb0c0; --accent: #69c0e6; --accent-2: #55c79a; --warn: #f0c571; --bad: #e58a9c; }
+    :root {
+      color-scheme: dark; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; line-height: 1.4;
+      --bg: #0d1721; --panel: #162431; --panel-2: #1b2b39; --line: #2b3d4f;
+      --text: #e7eef5; --muted: #9fb0c0; --accent: #69c0e6; --accent-2: #55c79a; --warn: #f0c571; --bad: #e58a9c;
+      --on-accent: #10202c; --tooltip-bg: #10202c; --shadow: rgba(0,0,0,.35); --row-stripe: rgba(255,255,255,.025);
+      --notice-bg: #302027; --notice-line: #d45d6f; --notice-text: #ff7d83; --disclosure-bg: #302b20;
+      --chart-grid: #304355; --chart-axis: #627487;
+      --series-salary: #69c0e6; --series-state: #55c79a; --series-lump: #f0c571;
+      --series-pension: #8e7dce; --series-savings: #f4a261; --series-cash: #e9c46a;
+      --series-essential: #e58a9c; --series-preferred: #f0c571; --series-total: #9fb0c0;
+      --left-w: 275px;
+    }
+    /* Light palette. Every token declared on :root is re-declared here so a theme
+       switch never leaves a stale dark value behind. */
+    :root[data-theme="light"] {
+      color-scheme: light;
+      --bg: #eef3f6; --panel: #ffffff; --panel-2: #e7eef3; --line: #b9c8d3;
+      --text: #152330; --muted: #4e6373; --accent: #0b6f93; --accent-2: #146d4a; --warn: #8a5a00; --bad: #b0243c;
+      --on-accent: #ffffff; --tooltip-bg: #ffffff; --shadow: rgba(21,35,48,.18); --row-stripe: rgba(21,35,48,.035);
+      --notice-bg: #fdecef; --notice-line: #b0243c; --notice-text: #8f1d2c; --disclosure-bg: #fdf5e3;
+      --chart-grid: #c9d6df; --chart-axis: #7d93a4;
+      --series-salary: #0b6f93; --series-state: #146d4a; --series-lump: #8a6500;
+      --series-pension: #6a41a3; --series-savings: #b4581f; --series-cash: #7d6414;
+      --series-essential: #b0243c; --series-preferred: #8a5a00; --series-total: #4e6373;
+    }
     * { box-sizing: border-box; }
+    /* Author display rules below (label{display:flex}, .modal-overlay{display:flex})
+       outrank the UA's [hidden]{display:none}, so restore it explicitly. */
+    [hidden] { display: none !important; }
     body { margin: 0; min-height: 100vh; background: var(--bg); color: var(--text); font-size: 13px; }
     a { color: var(--accent); }
-    .top-notice { padding: .55rem 1rem; border-bottom: 2px solid #d45d6f; background: #302027; color: #ff7d83; text-align: center; font-weight: 700; font-size: 12px; }
+    .top-notice { padding: .55rem 1rem; border-bottom: 2px solid var(--notice-line); background: var(--notice-bg); color: var(--notice-text); text-align: center; font-weight: 700; font-size: 12px; }
     header { padding: .7rem 1.1rem .75rem; border-bottom: 1px solid var(--line); }
     .header-row { display: flex; align-items: center; gap: 1rem; }
     .header-actions { display: flex; flex-wrap: wrap; gap: .4rem; margin-left: auto; }
@@ -18,26 +45,42 @@
     h1 { margin: 0; font-size: 1.15rem; letter-spacing: -.01em; }
     header p { margin: .25rem 0 0; color: var(--muted); font-size: 12px; }
     .header-meta { margin-left: auto; color: var(--muted); font-size: 11px; text-align: right; }
-    .app-shell { display: grid; grid-template-columns: 275px minmax(0, 1fr); gap: 14px; max-width: 1560px; margin: 0 auto; padding: 12px 14px 24px; }
-    .sidebar { min-width: 0; border-right: 1px solid var(--line); padding-right: 12px; }
-    .workspace { min-width: 0; }
+    .app-shell { display: grid; grid-template-columns: minmax(0, var(--left-w)) 6px minmax(0, 1fr); max-width: 1560px; margin: 0 auto; padding: 12px 14px 24px; }
+    .sidebar { min-width: 0; padding-right: 12px; }
+    .workspace { min-width: 0; padding-left: 12px; }
+    #splitter { align-self: stretch; border: 0; border-radius: 3px; padding: 0; background: var(--line); opacity: .6; cursor: col-resize; touch-action: none; transition: opacity .15s ease, background .15s ease; }
+    #splitter:hover, #splitter.dragging { opacity: 1; background: var(--accent); }
     .panel, .results, .disclosure { margin: 0 0 10px; padding: 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); }
     fieldset.panel { min-width: 0; }
+    /* Asset-class accent, so a panel can be found by colour without reading headings. */
+    .panel.pot { border-left: 3px solid var(--series-savings); }
     .panel > summary { cursor: pointer; list-style: none; }
     .panel > summary::-webkit-details-marker { display: none; }
-    .panel > summary::before { content: '›'; display: inline-block; width: 12px; color: var(--muted); font-size: 17px; line-height: 10px; vertical-align: -1px; }
-    .panel[open] > summary::before { content: '⌄'; }
+    .panel > summary::before { content: ''; display: inline-block; width: 7px; height: 7px; margin: 0 7px 0 1px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(-45deg); transition: transform .15s ease; vertical-align: 1px; }
+    .panel[open] > summary::before { transform: rotate(45deg); }
     .panel > summary h2, .results h2 { display: inline; margin: 0; color: var(--accent); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; }
+    .panel-hint { margin: .5rem 0 0; color: var(--muted); font-size: 11px; }
     h3 { margin: .8rem 0 .35rem; font-size: 12px; }
     .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .45rem .55rem; }
     label { display: flex; min-width: 0; flex-direction: column; gap: .18rem; color: var(--muted); font-size: 11px; font-weight: 400; }
     input, select, button { width: 100%; font: inherit; padding: .38rem .45rem; border: 1px solid var(--line); border-radius: 6px; background: var(--panel-2); color: var(--text); }
-    input:focus, select:focus, button:focus { outline: 2px solid var(--warn); outline-offset: 2px; }
+    /* :focus-visible, not :focus, so the ring is a keyboard affordance rather than
+       something that fires on every mouse click. */
+    input:focus-visible, select:focus-visible, button:focus-visible, summary:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--warn); outline-offset: 2px; }
+    input[aria-invalid="true"], select[aria-invalid="true"] { border-color: var(--bad); box-shadow: 0 0 0 1px var(--bad); }
     button { cursor: pointer; }
     button:hover { border-color: var(--accent); }
     .actions { display: grid; grid-template-columns: 1fr 1fr; gap: .4rem; margin-top: .65rem; }
-    .lump-sum-row { display: grid; grid-template-columns: 1fr 1fr; gap: .4rem .55rem; margin: .55rem 0; padding: .55rem; border: 1px solid var(--line); border-radius: 7px; background: var(--panel-2); }
-    .lump-sum-row .remove-lump-sum { grid-column: 2; width: auto; justify-self: end; padding: .25rem .5rem; font-size: 10px; }
+    .lump-sum-row { margin: .55rem 0; padding: .45rem .5rem; border: 1px solid var(--line); border-radius: 7px; background: var(--panel-2); }
+    .lump-summary { display: grid; grid-template-columns: 26px minmax(50px, auto) minmax(36px, 1fr) minmax(48px, auto) auto; align-items: center; gap: .3rem; }
+    .lump-chevron { width: 26px; padding: 0; border-color: transparent; background: transparent; color: var(--muted); font-size: 16px; line-height: 1; transition: transform .15s ease; }
+    .lump-chevron[aria-expanded="true"] { transform: rotate(90deg); }
+    .lump-summary-amount { font-variant-numeric: tabular-nums; font-weight: 700; }
+    .lump-summary-reason { overflow: hidden; color: var(--muted); text-overflow: ellipsis; white-space: nowrap; }
+    .lump-summary-date { color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .lump-summary .remove-lump-sum { width: auto; padding: .2rem .45rem; font-size: 10px; }
+    .lump-editor { padding: .5rem 0 .1rem; }
+    .lump-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .4rem .55rem; }
     #add-lump-sum { margin-top: .35rem; }
     .error { color: var(--bad); font-size: 10px; min-height: 1.05em; }
     .notice { margin: .6rem 0 0; color: var(--accent-2); font-size: 11px; }
@@ -46,20 +89,32 @@
     .summary-card span { display: block; color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: .04em; }
     .summary-card strong { display: block; margin-top: .15rem; font-size: 1rem; }
     .summary-card small { color: var(--muted); font-size: 10px; }
-    .alert { margin-top: 8px; padding: .45rem .65rem; border: 1px solid var(--warn); border-radius: 7px; background: rgba(240,197,113,.08); color: var(--text); font-size: 11px; }
-    .alert.bad { border-color: var(--bad); background: rgba(229,138,156,.08); }
+    /* Status is carried by the card's own wording too; colour is a second signal, not the only one. */
+    .summary-card.good { border-left-color: var(--accent-2); } .summary-card.good strong { color: var(--accent-2); }
+    .summary-card.warn { border-left-color: var(--warn); } .summary-card.warn strong { color: var(--warn); }
+    .summary-card.bad { border-left-color: var(--bad); } .summary-card.bad strong { color: var(--bad); }
+    .alert { margin-top: 8px; padding: .45rem .65rem; border: 1px solid var(--warn); border-radius: 7px; background: color-mix(in srgb, var(--warn) 9%, transparent); color: var(--text); font-size: 11px; }
+    .alert.bad { border-color: var(--bad); background: color-mix(in srgb, var(--bad) 9%, transparent); }
+    .alert.good { border-color: var(--accent-2); background: color-mix(in srgb, var(--accent-2) 9%, transparent); }
+    .alert.info { border-color: var(--line); background: var(--panel-2); }
+    .validation-summary { margin: 0 0 10px; padding: .55rem .7rem; border: 1px solid var(--bad); border-radius: 8px; background: color-mix(in srgb, var(--bad) 9%, transparent); font-size: 11px; }
+    .validation-summary h2 { margin: 0 0 .3rem; color: var(--bad); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; }
+    .validation-summary ul { margin: 0; padding-left: 1.1rem; }
+    .validation-summary li { margin: .15rem 0; }
+    .validation-summary button { width: auto; padding: 0; border: 0; background: none; color: var(--text); font: inherit; text-align: left; text-decoration: underline; text-underline-offset: 2px; }
+    .validation-summary button:hover { color: var(--bad); }
     .table-wrap { overflow-x: auto; margin-top: .35rem; border: 1px solid var(--line); border-radius: 8px; }
     table { border-collapse: collapse; width: 100%; min-width: 850px; font-size: 11px; font-variant-numeric: tabular-nums; }
     th, td { border-bottom: 1px solid var(--line); padding: .35rem .45rem; text-align: right; white-space: nowrap; }
     th { background: var(--panel-2); color: var(--muted); font-weight: 600; }
     th:first-child, td:first-child { text-align: left; }
-    tr:nth-child(even) td, tr:nth-child(even) th[scope="row"] { background: rgba(255,255,255,.025); }
+    tr:nth-child(even) td, tr:nth-child(even) th[scope="row"] { background: var(--row-stripe); }
     .chart-intro { margin: .35rem 0 0; color: var(--muted); font-size: 11px; }
     .chart-heading { display: flex; align-items: center; justify-content: space-between; gap: .75rem; margin-top: .8rem; }
     .chart-heading h3 { margin: 0; }
     .chart-tabs { display: flex; gap: .35rem; }
     .chart-tab { width: auto; padding: .28rem .65rem; color: var(--muted); font-size: 11px; }
-    .chart-tab[aria-selected="true"] { border-color: var(--accent); background: var(--accent); color: #10202c; font-weight: 700; }
+    .chart-tab[aria-selected="true"] { border-color: var(--accent); background: var(--accent); color: var(--on-accent); font-weight: 700; }
     .chart-toolbar { display: flex; align-items: center; justify-content: flex-end; gap: .75rem; margin-top: .45rem; padding-top: .45rem; border-top: 1px solid var(--line); }
     .display-control { display: flex; flex-direction: row; align-items: center; gap: .45rem; color: var(--muted); font-size: 11px; }
     .display-control select { width: auto; min-width: 170px; padding: .3rem .45rem; }
@@ -69,40 +124,72 @@
     .swatch { display: inline-block; width: .72rem; height: .72rem; margin-right: .3rem; border-radius: 2px; }
     .line-swatch { height: 0; border-top: 2px solid currentColor; border-radius: 0; }
     .line-swatch.preferred { border-top-style: dashed; }
-    .chart-gridline { stroke: #304355; stroke-width: 1; }
-    .chart-axis { stroke: #627487; stroke-width: 1; }
+    .chart-gridline { stroke: var(--chart-grid); stroke-width: 1; }
+    .chart-axis { stroke: var(--chart-axis); stroke-width: 1; }
     .chart-label { fill: var(--muted); font-size: 11px; }
     .chart-target-label { font-size: 10px; font-weight: 600; }
     .chart-bar { shape-rendering: crispEdges; }
     .chart-target-hit, #annual-chart polyline { pointer-events: none; }
     .chart-frame { position: relative; }
-    .chart-tooltip { position: absolute; z-index: 2; max-width: 240px; padding: .45rem .55rem; border: 1px solid var(--accent); border-radius: 6px; background: #10202c; color: var(--text); box-shadow: 0 5px 16px rgba(0,0,0,.35); font-size: 11px; line-height: 1.35; white-space: pre-line; pointer-events: none; }
+    .chart-tooltip { position: absolute; z-index: 2; max-width: 240px; padding: .45rem .55rem; border: 1px solid var(--accent); border-radius: 6px; background: var(--tooltip-bg); color: var(--text); box-shadow: 0 5px 16px var(--shadow); font-size: 11px; line-height: 1.35; white-space: pre-line; pointer-events: none; }
     .chart-hover-target { cursor: crosshair; }
-    .chart-hover-target:focus { outline: 2px solid var(--warn); outline-offset: 1px; }
-    @media (max-width: 600px) { svg { height: 310px; } .chart-intro { line-height: 1.35; } .chart-toolbar { justify-content: stretch; } .display-control { width: 100%; justify-content: space-between; } .lump-sum-row { grid-template-columns: 1fr; } .lump-sum-row .remove-lump-sum { grid-column: 1; justify-self: start; } }
+    .chart-hover-target:focus-visible { outline: 2px solid var(--warn); outline-offset: 1px; }
+    @media (max-width: 600px) { svg { height: 310px; } .chart-intro { line-height: 1.35; } .chart-toolbar { justify-content: stretch; } .display-control { width: 100%; justify-content: space-between; } .lump-grid { grid-template-columns: 1fr; } }
     .muted { color: var(--muted); }
-    .disclosure { border-color: var(--warn); background: #302b20; color: var(--text); }
+    .disclosure { border-color: var(--warn); background: var(--disclosure-bg); color: var(--text); }
     .disclosure h2 { margin: 0 0 .55rem; color: var(--warn); font-size: 12px; }
     .disclosure-columns { columns: 2 280px; column-gap: 2rem; }
     .disclosure-columns > div { break-inside: avoid; }
     details.assumptions { border: 1px solid var(--line); border-radius: 8px; background: var(--panel); margin-top: 10px; }
     details.assumptions summary { cursor: pointer; padding: .65rem .75rem; color: var(--muted); font-weight: 600; }
     details.assumptions .disclosure { margin: 0; border: 0; border-top: 1px solid var(--line); border-radius: 0; }
-    @media (max-width: 900px) { .app-shell { grid-template-columns: 1fr; } .sidebar { border-right: 0; padding-right: 0; } }
+    /* In-page confirmation for destructive actions. A custom dialog rather than
+       window.confirm(), which iOS/iPadOS Safari can silently suppress after a user
+       dismisses one with "Don't show more alerts". It then returns false with no
+       dialog shown, leaving the button apparently dead. */
+    .modal-overlay { position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px; background: rgba(4,10,16,.62); }
+    .modal-box { width: 100%; max-width: 420px; padding: 16px 16px 13px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); color: var(--text); box-shadow: 0 12px 40px var(--shadow); }
+    .modal-box h2 { margin: 0 0 .5rem; color: var(--accent); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; }
+    .modal-message { margin: 0 0 1rem; font-size: 12.5px; line-height: 1.45; }
+    .modal-actions { display: flex; justify-content: flex-end; gap: .5rem; }
+    .modal-actions button { width: auto; padding: .45rem 1rem; }
+    .modal-confirm { border-color: var(--accent); background: var(--accent); color: var(--on-accent); font-weight: 700; }
+    @media (max-width: 1200px) { .app-shell { grid-template-columns: minmax(0, clamp(230px, var(--left-w), 34vw)) 6px minmax(0, 1fr); } }
+    @media (max-width: 900px) { .app-shell { grid-template-columns: 1fr; } #splitter { display: none; } .sidebar { padding-right: 0; border-bottom: 1px solid var(--line); padding-bottom: 4px; } .workspace { padding-left: 0; } }
     @media (max-width: 600px) { .app-shell { padding: 8px; } .summary-grid { grid-template-columns: 1fr 1fr; } .header-row { align-items: flex-start; flex-direction: column; } .header-meta { margin-left: 0; text-align: left; } }
+    @media (max-width: 480px) { .summary-grid, .form-grid, .actions { grid-template-columns: 1fr; } .disclosure-columns { columns: 1; } }
+    /* Touch pointers: 44px minimum targets, and 16px inputs so iOS does not zoom on focus. */
+    @media (pointer: coarse) {
+      button { min-height: 44px; }
+      input:not([type=file]), select { min-height: 44px; font-size: 16px; }
+      .lump-sum-row .remove-lump-sum, .chart-tab { min-height: 40px; }
+      .panel > summary { padding: .25rem 0; }
+    }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; scroll-behavior: auto !important; } }
   </style>
 </head>
 <body>
+  <div id="confirm-modal" class="modal-overlay" hidden>
+    <div class="modal-box" role="alertdialog" aria-modal="true" aria-labelledby="confirm-modal-title" aria-describedby="confirm-modal-message">
+      <h2 id="confirm-modal-title">Confirm</h2>
+      <p id="confirm-modal-message" class="modal-message"></p>
+      <div class="modal-actions">
+        <button type="button" id="confirm-modal-cancel">Cancel</button>
+        <button type="button" id="confirm-modal-ok" class="modal-confirm">Confirm</button>
+      </div>
+    </div>
+  </div>
   <div class="top-notice">Local, reproducible UK retirement planning. Estimate only; not financial, tax or pension advice.</div>
   <header>
     <div class="header-row">
-      <div><h1 id="page-title">UK Retirement Simulator</h1><p>A transparent two-person household projection. Working estimate, not financial advice.</p></div>
+      <div><h1 id="page-title">UK Retirement Simulator <span class="muted">Alpha 0.2.0</span></h1><p>A transparent two-person household projection. Working estimate, not financial advice.</p></div>
       <nav class="header-actions" aria-label="Scenario actions">
         <button type="button" id="new-scenario-header">New</button>
         <button type="button" id="save-scenario-header">Save locally</button>
         <button type="button" id="load-scenario-header">Load locally</button>
         <button type="button" id="import-scenario-header">Import JSON</button>
         <button type="button" id="export-scenario-header">Export JSON</button>
+        <button type="button" id="theme-toggle" aria-pressed="false">Light theme</button>
       </nav>
       <div class="header-meta">Scenario data stays local in this browser.<br>Use Export JSON to share a scenario.</div>
     </div>
@@ -111,7 +198,12 @@
   <div class="app-shell">
     <aside class="sidebar" aria-label="Scenario inputs">
       <form id="scenario-form" novalidate>
+        <div id="validation-summary" class="validation-summary" aria-live="polite" hidden>
+          <h2>Fix before the projection updates</h2>
+          <ul id="validation-summary-list"></ul>
+        </div>
         <details class="panel group" open><summary><h2>Scenario</h2></summary>
+        <p class="panel-hint">The projection runs from the start year until the oldest person reaches the end age.</p>
         <div class="form-grid">
           <label>Projection start year <input type="number" step="1" data-field="startYear" value="2026" required><span class="error" data-error-for="startYear"></span></label>
           <label>Projection end age <input type="number" step="1" data-field="household.endAge" value="90" required><span class="error" data-error-for="household.endAge"></span></label>
@@ -121,7 +213,9 @@
         <p class="notice" id="action-status" role="status" aria-live="polite"></p>
       </details>
 
-      <details class="panel group" open><summary><h2>Person 1</h2></summary><div class="form-grid">
+      <details class="panel group" open><summary><h2>Person 1</h2></summary>
+        <p class="panel-hint">Salary and contributions stop at the retirement age entered here.</p>
+        <div class="form-grid">
         <label>Name <input type="text" data-field="people[0].name" value="Person 1"><span class="error" data-error-for="people[0].name"></span></label>
         <label>Current age <input type="number" step="1" data-field="people[0].age" value="58"><span class="error" data-error-for="people[0].age"></span></label>
         <label>Retirement age <input type="number" step="1" data-field="people[0].retirementAge" value="60"><span class="error" data-error-for="people[0].retirementAge"></span></label>
@@ -133,7 +227,9 @@
         <label>State Pension (£/year) <input type="number" min="0" step="100" data-field="people[0].statePension.annualAmount" value="12500"><span class="error" data-error-for="people[0].statePension.annualAmount"></span></label>
       </div></details>
 
-      <details class="panel group" open><summary><h2>Person 2</h2></summary><div class="form-grid">
+      <details class="panel group" open><summary><h2>Person 2</h2></summary>
+        <p class="panel-hint">Salary and contributions stop at the retirement age entered here.</p>
+        <div class="form-grid">
         <label>Name <input type="text" data-field="people[1].name" value="Person 2"><span class="error" data-error-for="people[1].name"></span></label>
         <label>Current age <input type="number" step="1" data-field="people[1].age" value="56"><span class="error" data-error-for="people[1].age"></span></label>
         <label>Retirement age <input type="number" step="1" data-field="people[1].retirementAge" value="60"><span class="error" data-error-for="people[1].retirementAge"></span></label>
@@ -145,7 +241,9 @@
         <label>State Pension (£/year) <input type="number" min="0" step="100" data-field="people[1].statePension.annualAmount" value="12500"><span class="error" data-error-for="people[1].statePension.annualAmount"></span></label>
       </div></details>
 
-      <details class="panel group"><summary><h2>Cash and savings</h2></summary><div class="form-grid">
+      <details class="panel group pot"><summary><h2>Cash and savings</h2></summary>
+        <p class="panel-hint">Household balances held outside the pensions. Interest is applied before any drawdown.</p>
+        <div class="form-grid">
         <label>Cash (£) <input type="number" min="0" step="1000" data-field="cash.amount" value="15000"><span class="error" data-error-for="cash.amount"></span></label>
         <label>Cash interest (%) <input type="number" min="0" step="0.1" data-field="cash.interestPct" value="0"><span class="error" data-error-for="cash.interestPct"></span></label>
         <label>Savings (£) <input type="number" min="0" step="1000" data-field="savings.amount" value="50000"><span class="error" data-error-for="savings.amount"></span></label>
@@ -167,13 +265,17 @@
         <span class="error" data-error-for="lumpSumWithdrawals"></span>
       </details>
 
-      <details class="panel group"><summary><h2>Assumptions</h2></summary><div class="form-grid">
+      <details class="panel group"><summary><h2>Assumptions</h2></summary>
+        <p class="panel-hint">Household spending targets and the inflation rate applied across the projection.</p>
+        <div class="form-grid">
         <label>Essential spending (£/year) <input type="number" min="0" step="100" data-field="household.essentialAnnual" value="30000"><span class="error" data-error-for="household.essentialAnnual"></span></label>
         <label>Preferred spending (£/year) <input type="number" min="0" step="100" data-field="household.preferredAnnual" value="36000"><span class="error" data-error-for="household.preferredAnnual"></span></label>
         <label>Inflation (%) <input type="number" min="0" step="0.1" data-field="household.inflationPct" value="2.5"><span class="error" data-error-for="household.inflationPct"></span></label>
       </div></details>
       </form>
     </aside>
+
+    <button type="button" id="splitter" role="separator" aria-orientation="vertical" aria-label="Resize the input panel" aria-valuemin="230" aria-valuemax="520" aria-valuenow="275"></button>
 
     <main class="workspace">
       <section class="results" aria-labelledby="results-title">
@@ -547,7 +649,7 @@
       let displayMode = 'todaysMoney';
       let chartMode = 'income';
       const currency = new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP', maximumFractionDigits: 0 });
-      const number = (value) => Number.isFinite(value) ? currency.format(value) : '—';
+      const number = (value) => Number.isFinite(value) ? currency.format(value) : '-';
       const fieldId = (field) => `field-${field.replace(/\[(\d+)\]/g, '-$1').replace(/[^a-zA-Z0-9]+/g, '-')}`;
       const getPath = (object, path) => path.replace(/\[(\d+)\]/g, '.$1').split('.').reduce((value, part) => value?.[part], object);
       const setPath = (object, path, value) => {
@@ -568,14 +670,54 @@
           const source = event.source || 'privatePension';
           const label = event.label ?? '';
           const field = (name) => `lumpSumWithdrawals[${index}].${name}`;
+          // An entry that is still missing its age or amount opens on render, so a
+          // newly added row is immediately editable rather than a blank summary.
+          const complete = String(age).trim() !== '' && String(amount).trim() !== '';
+          const expanded = event.expanded ?? !complete;
+          const described = label.trim() || 'Lump sum';
+          const editorId = `lump-editor-${index}`;
           return `<div class="lump-sum-row" data-lump-index="${index}">
-            <label>Age (oldest person) <input type="number" min="0" step="1" data-lump-field="age" value="${escapeHtml(age)}" aria-invalid="false" aria-describedby="${field('age')}-error"><span class="error" id="${field('age')}-error" data-error-for="${field('age')}"></span></label>
-            <label>Amount (£) <input type="number" min="0" step="100" data-lump-field="amount" value="${escapeHtml(amount)}" aria-invalid="false" aria-describedby="${field('amount')}-error"><span class="error" id="${field('amount')}-error" data-error-for="${field('amount')}"></span></label>
-            <label>Source <select data-lump-field="source" aria-invalid="false" aria-describedby="${field('source')}-error"><option value="privatePension" ${source === 'privatePension' ? 'selected' : ''}>Private pension</option><option value="savings" ${source === 'savings' ? 'selected' : ''}>Savings</option><option value="cash" ${source === 'cash' ? 'selected' : ''}>Cash</option></select><span class="error" id="${field('source')}-error" data-error-for="${field('source')}"></span></label>
-            <label>Description (optional) <input type="text" data-lump-field="label" value="${escapeHtml(label)}" aria-invalid="false" aria-describedby="${field('label')}-error"><span class="error" id="${field('label')}-error" data-error-for="${field('label')}"></span></label>
-            <button type="button" class="remove-lump-sum" data-remove-lump-sum>Remove</button>
+            <div class="lump-summary">
+              <button type="button" class="lump-chevron" data-lump-toggle aria-expanded="${expanded}" aria-controls="${editorId}" aria-label="${expanded ? 'Collapse' : 'Edit'} ${escapeHtml(described)}">›</button>
+              <span class="lump-summary-amount">${amount === '' ? '-' : number(Number(amount))}</span>
+              <span class="lump-summary-reason" title="${escapeHtml(described)}">${escapeHtml(described)}</span>
+              <span class="lump-summary-date">${age === '' ? '' : `Age ${escapeHtml(age)}`}</span>
+              <button type="button" class="remove-lump-sum" data-remove-lump-sum aria-label="Remove ${escapeHtml(described)}">Remove</button>
+            </div>
+            <div class="lump-editor" id="${editorId}"${expanded ? '' : ' hidden'}>
+              <div class="lump-grid">
+                <label>Age (oldest person) <input type="number" min="0" step="1" data-lump-field="age" value="${escapeHtml(age)}" aria-invalid="false" aria-describedby="${field('age')}-error"><span class="error" id="${field('age')}-error" data-error-for="${field('age')}"></span></label>
+                <label>Amount (£) <input type="number" min="0" step="100" data-lump-field="amount" value="${escapeHtml(amount)}" aria-invalid="false" aria-describedby="${field('amount')}-error"><span class="error" id="${field('amount')}-error" data-error-for="${field('amount')}"></span></label>
+                <label>Source <select data-lump-field="source" aria-invalid="false" aria-describedby="${field('source')}-error"><option value="privatePension" ${source === 'privatePension' ? 'selected' : ''}>Private pension</option><option value="savings" ${source === 'savings' ? 'selected' : ''}>Savings</option><option value="cash" ${source === 'cash' ? 'selected' : ''}>Cash</option></select><span class="error" id="${field('source')}-error" data-error-for="${field('source')}"></span></label>
+                <label>Description (optional) <input type="text" data-lump-field="label" value="${escapeHtml(label)}" aria-invalid="false" aria-describedby="${field('label')}-error"><span class="error" id="${field('label')}-error" data-error-for="${field('label')}"></span></label>
+              </div>
+            </div>
           </div>`;
         }).join('');
+      };
+      // Current rows straight from the DOM, carrying open/closed state so a
+      // re-render does not collapse what the user had open.
+      const readLumpRows = () => [...form.querySelectorAll('.lump-sum-row')].map((row) => ({
+        ...Object.fromEntries(['age', 'amount', 'source', 'label'].map((name) => [name, row.querySelector(`[data-lump-field="${name}"]`)?.value ?? ''])),
+        expanded: row.querySelector('[data-lump-toggle]')?.getAttribute('aria-expanded') === 'true'
+      }));
+      // The collapsed summary is updated in place rather than by re-rendering the
+      // list, which would destroy the field the user is typing in.
+      const refreshLumpSummary = (row) => {
+        if (!row) return;
+        const value = (name) => (row.querySelector(`[data-lump-field="${name}"]`)?.value ?? '').trim();
+        const amount = value('amount');
+        const age = value('age');
+        const described = value('label') || 'Lump sum';
+        row.querySelector('.lump-summary-amount').textContent = amount === '' ? '-' : number(Number(amount));
+        const reason = row.querySelector('.lump-summary-reason');
+        reason.textContent = described;
+        reason.title = described;
+        row.querySelector('.lump-summary-date').textContent = age === '' ? '' : `Age ${age}`;
+        const toggle = row.querySelector('[data-lump-toggle]');
+        const remove = row.querySelector('[data-remove-lump-sum]');
+        toggle.setAttribute('aria-label', `${toggle.getAttribute('aria-expanded') === 'true' ? 'Collapse' : 'Edit'} ${described}`);
+        remove.setAttribute('aria-label', `Remove ${described}`);
       };
       const readForm = () => {
         const scenario = clone(lastValidScenario);
@@ -606,7 +748,70 @@
         const priorityError = form.querySelector('[data-error-for="household.drawdownPriority"]');
         if (priorityError) priorityError.id = 'drawdown-priority-error';
       };
+      // The visible label is the single source of truth for a field's name, so the
+      // summary cannot drift out of step with the form.
+      const labelText = (label) => Array.from(label.childNodes).filter((node) => node.nodeType === 3).map((node) => node.textContent).join(' ').replace(/\s+/g, ' ').trim();
+      const fieldLabel = (field) => {
+        if (field === 'household.drawdownPriority') return 'Drawdown order';
+        const lump = field.match(/^lumpSumWithdrawals\[(\d+)\]\.(.+)$/);
+        if (lump) {
+          const input = document.querySelector(`.lump-sum-row[data-lump-index="${lump[1]}"] [data-lump-field="${lump[2]}"]`);
+          const label = input?.closest('label');
+          return `Lump sum ${Number(lump[1]) + 1}, ${label ? labelText(label) : lump[2]}`;
+        }
+        const label = form.querySelector(`[data-field="${field}"]`)?.closest('label');
+        return label ? labelText(label) : field;
+      };
+      const focusField = (field) => {
+        const lump = field.match(/^lumpSumWithdrawals\[(\d+)\]\.(.+)$/);
+        const input = field === 'household.drawdownPriority'
+          ? form.querySelector('[data-priority-index]')
+          : lump
+            ? document.querySelector(`.lump-sum-row[data-lump-index="${lump[1]}"] [data-lump-field="${lump[2]}"]`)
+            : form.querySelector(`[data-field="${field}"]`);
+        if (!input) return;
+        // Open the containing panel and, for a lump sum, its collapsed editor.
+        // focus() on a hidden element does nothing.
+        input.closest('details')?.setAttribute('open', '');
+        const editor = input.closest('.lump-editor');
+        if (editor?.hidden) {
+          editor.hidden = false;
+          const toggle = editor.closest('.lump-sum-row').querySelector('[data-lump-toggle]');
+          toggle.setAttribute('aria-expanded', 'true');
+          refreshLumpSummary(editor.closest('.lump-sum-row'));
+        }
+        input.focus();
+        input.scrollIntoView({ block: 'center' });
+      };
+      // Delegated, so a rebuilt list keeps working.
+      document.querySelector('#validation-summary-list').addEventListener('click', (event) => {
+        const button = event.target.closest('[data-focus-field]');
+        if (button) focusField(button.dataset.focusField);
+      });
+      let lastErrorSignature = null;
+      const renderValidationSummary = (errors) => {
+        // Recalculation runs on every keystroke. Rebuilding an unchanged list would
+        // re-announce it in the live region and, worse, destroy the entry a user is
+        // mid-click on, because blurring a field fires change, which lands here first.
+        const signature = JSON.stringify(errors);
+        if (signature === lastErrorSignature) return;
+        lastErrorSignature = signature;
+        const box = document.querySelector('#validation-summary');
+        const list = document.querySelector('#validation-summary-list');
+        if (!errors.length) { box.hidden = true; list.replaceChildren(); return; }
+        list.replaceChildren(...errors.map(({ field, message }) => {
+          const item = document.createElement('li');
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.dataset.focusField = field;
+          button.textContent = `${fieldLabel(field)} ${message}`;
+          item.append(button);
+          return item;
+        }));
+        box.hidden = false;
+      };
       const showErrors = (errors) => {
+        renderValidationSummary(errors);
         form.querySelectorAll('[data-error-for]').forEach((node) => { node.textContent = ''; });
         form.querySelectorAll('[data-field], [data-priority-index], [data-lump-field]').forEach((input) => { input.setAttribute('aria-invalid', 'false'); });
         errors.forEach(({ field, message }) => {
@@ -644,14 +849,15 @@
         const depletionAge = firstDepletion();
         const privateBalance = finalRow.balances.privatePension.reduce((total, value) => total + value, 0);
         const balances = privateBalance + finalRow.balances.savings + finalRow.balances.cash;
+        // Each card keeps its wording, so the status class is a second signal rather than the only one.
         document.querySelector('#summary').innerHTML = `
-          <div class="summary-card"><span>Essential spending</span><strong>${essentialCovered ? 'Covered throughout' : 'Shortfall occurs'}</strong></div>
-          <div class="summary-card"><span>First depletion age</span><strong>${depletionAge ?? 'None'}</strong></div>
-          <div class="summary-card"><span>Preferred shortfall (maximum annual)</span><strong>${number(maxShortfall)}</strong></div>
-          <div class="summary-card"><span>Ending balances</span><strong>${number(balances)}</strong><small>Private pension ${number(privateBalance)} · Savings ${number(finalRow.balances.savings)} · Cash ${number(finalRow.balances.cash)}</small></div>`;
+          <div class="summary-card ${essentialCovered ? 'good' : 'bad'}"><span>Essential spending</span><strong>${essentialCovered ? 'Covered throughout' : 'Shortfall occurs'}</strong></div>
+          <div class="summary-card ${depletionAge === null ? 'good' : 'warn'}"><span>First depletion age</span><strong>${depletionAge ?? 'None'}</strong></div>
+          <div class="summary-card ${maxShortfall > 0 ? 'warn' : 'good'}"><span>Preferred shortfall (maximum annual)</span><strong>${number(maxShortfall)}</strong></div>
+          <div class="summary-card ${balances > 0 ? 'good' : 'warn'}"><span>Ending balances</span><strong>${number(balances)}</strong><small>Private pension ${number(privateBalance)} · Savings ${number(finalRow.balances.savings)} · Cash ${number(finalRow.balances.cash)}</small></div>`;
         document.querySelector('#projection-alerts').innerHTML = `
-          <div class="alert ${essentialCovered ? '' : 'bad'}"><strong>${essentialCovered ? 'Projection status' : 'Projected essential-spending shortfall'}</strong> ${essentialCovered ? 'Essential spending is covered under the current assumptions.' : `The first essential-spending shortfall occurs at age ${lastProjection.find((row) => !selectedRow(row).spending.essentialCovered)?.ages?.[0] ?? 'unknown'}.`}</div>
-          <div class="alert">State Pension and private-pension drawdown are cumulative household resources: State Pension reduces the private-pension top-up required.</div>
+          <div class="alert ${essentialCovered ? 'good' : 'bad'}"><strong>${essentialCovered ? 'Projection status' : 'Projected essential-spending shortfall'}</strong> ${essentialCovered ? 'Essential spending is covered under the current assumptions.' : `The first essential-spending shortfall occurs at age ${lastProjection.find((row) => !selectedRow(row).spending.essentialCovered)?.ages?.[0] ?? 'unknown'}.`}</div>
+          <div class="alert info">State Pension and private-pension drawdown are cumulative household resources: State Pension reduces the private-pension top-up required.</div>
           ${lumpSumShortfall > 0 ? `<div class="alert bad"><strong>Lump-sum shortfall</strong> ${number(lumpSumShortfall)} of requested one-off withdrawals could not be funded from the selected sources.</div>` : ''}`;
       };
       const renderChart = () => {
@@ -677,11 +883,15 @@
         const xStep = plotWidth / Math.max(1, lastProjection.length);
         const y = (value) => margin.top + plotHeight - (value / chartMax) * plotHeight;
         const barWidth = Math.max(4, Math.min(22, xStep * .68));
-        const colors = balanceMode ? ['#8e7dce', '#f4a261', '#e9c46a'] : ['#69c0e6', '#55c79a', '#f0c571', '#8e7dce', '#f4a261', '#e9c46a'];
+        // Series colours resolve from custom properties so the chart follows the active theme.
+        // They go through inline style, not fill=/stroke= presentation attributes, which do not resolve var().
+        const colors = balanceMode
+          ? ['var(--series-pension)', 'var(--series-savings)', 'var(--series-cash)']
+          : ['var(--series-salary)', 'var(--series-state)', 'var(--series-lump)', 'var(--series-pension)', 'var(--series-savings)', 'var(--series-cash)'];
         const labels = balanceMode ? ['Private pension balance', 'Savings balance', 'Cash balance'] : ['Salary income', 'State Pension', 'Lump sum withdrawal', 'Private pension drawdown', 'Savings drawdown', 'Cash drawdown'];
         legend.innerHTML = balanceMode
-          ? '<span class="legend-item"><i class="swatch" style="background:#8e7dce"></i>Private pensions</span><span class="legend-item"><i class="swatch" style="background:#f4a261"></i>Savings</span><span class="legend-item"><i class="swatch" style="background:#e9c46a"></i>Cash</span>'
-          : '<span class="legend-item"><i class="swatch" style="background:#69c0e6"></i>Salary income</span><span class="legend-item"><i class="swatch" style="background:#55c79a"></i>State Pension</span><span class="legend-item"><i class="swatch" style="background:#f0c571"></i>Lump sum withdrawal</span><span class="legend-item"><i class="swatch" style="background:#8e7dce"></i>Private pension drawdown</span><span class="legend-item"><i class="swatch" style="background:#f4a261"></i>Savings drawdown</span><span class="legend-item"><i class="swatch" style="background:#e9c46a"></i>Cash drawdown</span><span class="legend-item"><i class="swatch line-swatch" style="color:#e58a9c"></i>Essential spending</span><span class="legend-item"><i class="swatch line-swatch preferred" style="color:#f0c571"></i>Preferred spending</span>';
+          ? '<span class="legend-item"><i class="swatch" style="background:var(--series-pension)"></i>Private pensions</span><span class="legend-item"><i class="swatch" style="background:var(--series-savings)"></i>Savings</span><span class="legend-item"><i class="swatch" style="background:var(--series-cash)"></i>Cash</span>'
+          : '<span class="legend-item"><i class="swatch" style="background:var(--series-salary)"></i>Salary income</span><span class="legend-item"><i class="swatch" style="background:var(--series-state)"></i>State Pension</span><span class="legend-item"><i class="swatch" style="background:var(--series-lump)"></i>Lump sum withdrawal</span><span class="legend-item"><i class="swatch" style="background:var(--series-pension)"></i>Private pension drawdown</span><span class="legend-item"><i class="swatch" style="background:var(--series-savings)"></i>Savings drawdown</span><span class="legend-item"><i class="swatch" style="background:var(--series-cash)"></i>Cash drawdown</span><span class="legend-item"><i class="swatch line-swatch" style="color:var(--series-essential)"></i>Essential spending</span><span class="legend-item"><i class="swatch line-swatch preferred" style="color:var(--series-preferred)"></i>Preferred spending</span>';
         intro.textContent = balanceMode
           ? 'Stacked bars show the remaining private-pension, savings and cash balances in the selected display mode.'
           : 'Stacked bars show the resources available to fund spending. Lines show the essential and preferred household targets in the selected display mode.';
@@ -717,18 +927,18 @@
               item.lumpSumWithdrawals.filter((event) => event.drawn > 0).forEach((event) => tooltipLines.push(`${event.label} · ${lumpSumSourceLabel(event.source)} ${number(event.drawn)}`));
             }
             const tooltipText = escapeHtml(tooltipLines.join('\n'));
-            markup += `<rect class="chart-bar chart-hover-target" tabindex="0" data-chart-tooltip="${tooltipText}" aria-label="${tooltipText}" x="${x}" y="${top}" width="${barWidth}" height="${Math.max(0, bottom - top)}" fill="${colors[source]}"><title>${row.year}: ${labels[source]} ${number(value)}</title></rect>`;
+            markup += `<rect class="chart-bar chart-hover-target" tabindex="0" data-chart-tooltip="${tooltipText}" aria-label="${tooltipText}" x="${x}" y="${top}" width="${barWidth}" height="${Math.max(0, bottom - top)}" style="fill:${colors[source]}"><title>${row.year}: ${labels[source]} ${number(value)}</title></rect>`;
             stacked += value;
           });
           if (index === 0 || index === Math.floor(lastProjection.length / 2) || index === lastProjection.length - 1) markup += `<text class="chart-label" x="${centreX}" y="${height - 14}" text-anchor="middle">${Math.max(...row.ages)}</text>`;
         });
         const last = selectedRow(lastProjection[lastProjection.length - 1]);
         if (!balanceMode) {
-          markup += `<polyline points="${essentialPoints.join(' ')}" fill="none" stroke="#e58a9c" stroke-width="2"/><polyline points="${preferredPoints.join(' ')}" fill="none" stroke="#f0c571" stroke-width="2" stroke-dasharray="5 4"/>`;
-          markup += `<text class="chart-target-label" x="${width - margin.right - 2}" y="${y(last.spending.preferred) - 6}" text-anchor="end" fill="#f0c571">Preferred</text>`;
-          markup += `<text class="chart-target-label" x="${width - margin.right - 2}" y="${y(last.spending.essential) + 13}" text-anchor="end" fill="#e58a9c">Essential</text>`;
+          markup += `<polyline points="${essentialPoints.join(' ')}" fill="none" style="stroke:var(--series-essential)" stroke-width="2"/><polyline points="${preferredPoints.join(' ')}" fill="none" style="stroke:var(--series-preferred)" stroke-width="2" stroke-dasharray="5 4"/>`;
+          markup += `<text class="chart-target-label" x="${width - margin.right - 2}" y="${y(last.spending.preferred) - 6}" text-anchor="end" style="fill:var(--series-preferred)">Preferred</text>`;
+          markup += `<text class="chart-target-label" x="${width - margin.right - 2}" y="${y(last.spending.essential) + 13}" text-anchor="end" style="fill:var(--series-essential)">Essential</text>`;
         } else {
-          markup += `<text class="chart-target-label" x="${width - margin.right - 2}" y="${y(last.balances.privatePension.reduce((total, value) => total + value, 0) + last.balances.savings + last.balances.cash) - 6}" text-anchor="end" fill="#9fb0c0">Total assets</text>`;
+          markup += `<text class="chart-target-label" x="${width - margin.right - 2}" y="${y(last.balances.privatePension.reduce((total, value) => total + value, 0) + last.balances.savings + last.balances.cash) - 6}" text-anchor="end" style="fill:var(--series-total)">Total assets</text>`;
         }
         markup += `<text class="chart-label" x="${margin.left}" y="${margin.top - 8}">${balanceMode ? 'Balance' : 'Annual amount'}</text><text class="chart-label" x="${(margin.left + width - margin.right) / 2}" y="${height - 2}" text-anchor="middle">Age (oldest person)</text>`;
         svg.innerHTML = markup;
@@ -771,7 +981,107 @@
         lastValidScenario = candidate; lastProjection = projectScenario(candidate); setStatus('Projection updated.'); renderResults();
       };
       const download = (name, content) => { const link = document.createElement('a'); link.href = URL.createObjectURL(new Blob([content], { type: 'application/json' })); link.download = name; link.click(); URL.revokeObjectURL(link.href); };
+
+      // Storage is unavailable in some privacy modes; a lost preference must never
+      // take the whole page down, so every access is guarded.
+      const readStored = (key) => { try { return localStorage.getItem(key); } catch { return null; } };
+      const writeStored = (key, value) => { try { localStorage.setItem(key, value); } catch { /* preference is not persisted */ } };
+
+      const themeButton = document.querySelector('#theme-toggle');
+      const applyTheme = (theme) => {
+        const light = theme === 'light';
+        document.documentElement.dataset.theme = light ? 'light' : 'dark';
+        themeButton.setAttribute('aria-pressed', String(light));
+        themeButton.textContent = light ? 'Dark theme' : 'Light theme';
+        // Re-render so the chart picks up the new custom-property values.
+        renderChart();
+      };
+      themeButton.addEventListener('click', () => {
+        const next = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
+        applyTheme(next);
+        writeStored('uk-retirement-simulator-theme', next);
+      });
+
+      const splitter = document.querySelector('#splitter');
+      const shell = document.querySelector('.app-shell');
+      const MIN_WIDTH = 230; const MAX_WIDTH = 520;
+      const applyWidth = (width) => {
+        const clamped = Math.round(Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, width)));
+        shell.style.setProperty('--left-w', `${clamped}px`);
+        splitter.setAttribute('aria-valuenow', String(clamped));
+        return clamped;
+      };
+      splitter.addEventListener('pointerdown', (event) => {
+        event.preventDefault();
+        splitter.setPointerCapture(event.pointerId);
+        splitter.classList.add('dragging');
+        const originX = event.clientX;
+        const originWidth = document.querySelector('.sidebar').getBoundingClientRect().width;
+        const onMove = (move) => applyWidth(originWidth + (move.clientX - originX));
+        const onUp = () => {
+          splitter.classList.remove('dragging');
+          splitter.removeEventListener('pointermove', onMove);
+          splitter.removeEventListener('pointerup', onUp);
+          writeStored('uk-retirement-simulator-width', splitter.getAttribute('aria-valuenow'));
+        };
+        splitter.addEventListener('pointermove', onMove);
+        splitter.addEventListener('pointerup', onUp);
+      });
+      splitter.addEventListener('keydown', (event) => {
+        const step = event.key === 'ArrowLeft' ? -16 : event.key === 'ArrowRight' ? 16 : 0;
+        if (!step) return;
+        event.preventDefault();
+        applyWidth(Number(splitter.getAttribute('aria-valuenow')) + step);
+        writeStored('uk-retirement-simulator-width', splitter.getAttribute('aria-valuenow'));
+      });
+
+      const modal = document.querySelector('#confirm-modal');
+      const modalMessage = document.querySelector('#confirm-modal-message');
+      const modalOk = document.querySelector('#confirm-modal-ok');
+      const modalCancel = document.querySelector('#confirm-modal-cancel');
+      let closeModal = null;
+      // Resolves true/false rather than returning it, so callers await the user's
+      // answer instead of blocking on a native dialog.
+      const confirmAction = (message) => new Promise((resolve) => {
+        const invoker = document.activeElement;
+        modalMessage.textContent = message;
+        modal.hidden = false;
+        modalOk.focus();
+        const settle = (answer) => {
+          modal.hidden = true;
+          modalOk.removeEventListener('click', onOk);
+          modalCancel.removeEventListener('click', onCancel);
+          document.removeEventListener('keydown', onKeydown);
+          closeModal = null;
+          if (invoker instanceof HTMLElement) invoker.focus();
+          resolve(answer);
+        };
+        const onOk = () => settle(true);
+        const onCancel = () => settle(false);
+        const onKeydown = (event) => {
+          if (event.key === 'Escape') { event.preventDefault(); settle(false); return; }
+          if (event.key !== 'Tab') return;
+          // Two focusable controls, so a manual cycle is enough of a focus trap.
+          const [first, last] = [modalCancel, modalOk];
+          const moving = event.shiftKey ? first : last;
+          if (document.activeElement === moving) { event.preventDefault(); (event.shiftKey ? last : first).focus(); }
+        };
+        closeModal = onCancel;
+        modalOk.addEventListener('click', onOk);
+        modalCancel.addEventListener('click', onCancel);
+        document.addEventListener('keydown', onKeydown);
+      });
+      modal.addEventListener('click', (event) => { if (event.target === modal && closeModal) closeModal(); });
       form.addEventListener('input', recalculate); form.addEventListener('change', recalculate);
+      form.addEventListener('input', (event) => { if (event.target.matches('[data-lump-field]')) refreshLumpSummary(event.target.closest('.lump-sum-row')); });
+      form.addEventListener('click', (event) => {
+        const toggle = event.target.closest('[data-lump-toggle]');
+        if (!toggle) return;
+        const expanded = toggle.getAttribute('aria-expanded') === 'true';
+        toggle.setAttribute('aria-expanded', String(!expanded));
+        document.querySelector(`#${toggle.getAttribute('aria-controls')}`).hidden = expanded;
+        refreshLumpSummary(toggle.closest('.lump-sum-row'));
+      });
       document.querySelector('#display-mode').addEventListener('change', (event) => { displayMode = event.target.value; renderResults(); });
       const setChartMode = (mode) => {
         chartMode = mode;
@@ -782,20 +1092,23 @@
       document.querySelector('#chart-income').addEventListener('click', () => setChartMode('income'));
       document.querySelector('#chart-balance').addEventListener('click', () => setChartMode('balance'));
       document.querySelector('#add-lump-sum').addEventListener('click', () => {
-        const current = [...form.querySelectorAll('.lump-sum-row')].map((row) => Object.fromEntries(['age', 'amount', 'source', 'label'].map((name) => [name, row.querySelector(`[data-lump-field="${name}"]`)?.value ?? ''])));
-        renderLumpSums([...current, { age: '', amount: '', source: 'privatePension', label: '' }]);
+        renderLumpSums([...readLumpRows(), { age: '', amount: '', source: 'privatePension', label: '' }]);
         recalculate();
       });
       form.addEventListener('click', (event) => {
         if (!event.target.closest('[data-remove-lump-sum]')) return;
         event.target.closest('.lump-sum-row').remove();
+        // Re-render so data-lump-index and the error ids follow the new positions;
+        // without it a later row's errors would land on the wrong entry.
+        renderLumpSums(readLumpRows());
         recalculate();
       });
       document.querySelector('#save-scenario-header').addEventListener('click', () => {
         try { localStorage.setItem('uk-retirement-simulator-scenario', JSON.stringify(lastValidScenario)); setStatus('Saved locally on this device.'); }
         catch (error) { setStatus(`Could not save locally: ${error.message}. Current valid projection unchanged.`); }
       });
-      document.querySelector('#load-scenario-header').addEventListener('click', () => {
+      document.querySelector('#load-scenario-header').addEventListener('click', async () => {
+        if (!await confirmAction('Load the saved scenario? This replaces the values currently in the form.')) { setStatus('Load cancelled.'); return; }
         try {
           const saved = localStorage.getItem('uk-retirement-simulator-scenario');
           if (!saved) { setStatus('No locally saved scenario was found.'); return; }
@@ -804,7 +1117,10 @@
           fillForm(candidate); lastValidScenario = candidate; lastProjection = projectScenario(candidate); setStatus('Saved scenario loaded.'); renderResults();
         } catch (error) { setStatus(`Could not load saved scenario: ${error.message}`); }
       });
-      document.querySelector('#new-scenario-header').addEventListener('click', () => { fillForm(sampleScenario()); showErrors([]); lastValidScenario = clone(sampleScenario()); lastProjection = projectScenario(lastValidScenario); setStatus('New fictional starter scenario loaded.'); renderResults(); });
+      document.querySelector('#new-scenario-header').addEventListener('click', async () => {
+        if (!await confirmAction('Start a new scenario? This discards the values currently in the form.')) { setStatus('New scenario cancelled.'); return; }
+        fillForm(sampleScenario()); showErrors([]); lastValidScenario = clone(sampleScenario()); lastProjection = projectScenario(lastValidScenario); setStatus('New fictional starter scenario loaded.'); renderResults();
+      });
       document.querySelector('#export-scenario-header').addEventListener('click', () => { download('uk-retirement-scenario.json', JSON.stringify(lastValidScenario, null, 2)); setStatus('Scenario exported as JSON.'); });
       document.querySelector('#import-scenario-header').addEventListener('click', () => document.querySelector('#import-file').click());
       document.querySelector('#import-file').addEventListener('change', (event) => {
@@ -815,6 +1131,8 @@
           event.target.value = '';
         }; reader.readAsText(file);
       });
+      applyTheme(readStored('uk-retirement-simulator-theme') === 'light' ? 'light' : 'dark');
+      applyWidth(Number(readStored('uk-retirement-simulator-width')) || 275);
       setupValidationAccessibility(); fillForm(sample); showErrors([]); renderResults();
     })();
   </script>
