@@ -149,3 +149,36 @@ static test suite:
    rows with their original `data-lump-index` and error ids, so their validation
    errors could attach to the wrong entry. Removal now re-renders the list and
    preserves which rows were open.
+
+## Alpha 0.3.0 / 0.4.0 verification
+
+0.3.0 is an engine and chart/table presentation fix (#17, #18); 0.4.0 is a
+presentation-only table restructure (#22). The schema and validation rules
+are unchanged in both, so the automated suite above is unchanged in shape and
+now passes at 25 of 25 (one regression test added for #17).
+
+Verified in a real browser (headless Chromium against the local file), via
+DOM inspection and the console:
+
+- A lump sum drawn from a source with a smaller balance than requested still
+  reduces its source correctly, and the household's ordinary drawdown still
+  runs at full size in that year rather than being displaced: confirmed
+  against the table row for the withdrawal's age, cross-checked against the
+  automated regression test covering the same scenario.
+- The lump-sum chart segment renders as a separate block floating above the
+  funding stack rather than inside it; measured the gap between the two at
+  exactly 10 SVG units, matching the fixed gap used.
+- The chart segment's hover tooltip carries the age, year, amount and the
+  per-event description/source breakdown.
+- The annual table's new header order and cell values were read back
+  programmatically and checked against the underlying projection row for a
+  year including a lump sum: `Year`, both people's ages, `Total assets`, both
+  people's pension balances, `Cash balance`, `Savings balance`, `Salary
+  income`, `State Pension`, the three drawdown columns, `Essential spending`,
+  `Event` and `+/-` all matched.
+- Switching to the Balance chart view produced no console errors.
+- Console was clean throughout: no errors or warnings.
+
+No new screenshots were captured this pass; verification was DOM- and
+console-based rather than visual, since the changes are values and layout
+positions rather than a visual redesign.
