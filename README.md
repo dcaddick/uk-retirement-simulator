@@ -21,9 +21,9 @@ for the annual calculation sequence, assumptions and deliberate exclusions.
 
 ## Open the simulator
 
-[**Download UK Retirement Simulator**](https://github.com/dcaddick/retirement-simulator-uk/raw/master/uk-retirement-simulator.html)
+[**Download UK Retirement Simulator**](https://github.com/dcaddick/uk-retirement-simulator/raw/master/uk-retirement-simulator.html)
 
-[**Using a tablet? Open the simulator in your browser**](https://dcaddick.github.io/retirement-simulator-uk/)
+[**Using a tablet? Open the simulator in your browser**](https://dcaddick.github.io/uk-retirement-simulator/)
 
 Single HTML file, no installation, opens in a modern browser.
 
