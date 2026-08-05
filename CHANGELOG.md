@@ -4,6 +4,32 @@ Version numbering is independent of the release label. The project is Alpha and
 stays Alpha until that is changed deliberately; reaching a particular version
 number does not imply Beta.
 
+## Alpha 0.3.0 - 2026-08-05
+
+Fixed:
+
+- Lump-sum withdrawals were counted as household income, so a withdrawal
+  displaced ordinary drawdown pound-for-pound in the year it was taken and
+  every balance after that year was overstated. Withdrawals still reduce
+  their source balance as before; they no longer fund the household spending
+  target. This is an engine change: projected results after a lump-sum
+  withdrawal will differ from earlier Alpha releases. (#17)
+- The chart drew lump sums inside the stacked funding bar, and the table
+  headed the column "Lump sum income", both implying the withdrawal helped
+  meet the spending target. The chart now floats the lump-sum block above the
+  funding stack rather than stacking it in, matching the Australian
+  simulator's treatment; the table column is renamed "Lump sum withdrawn" to
+  match the legend. (#18)
+
+Changed:
+
+- `docs/MODEL-METHODOLOGY.md` and the in-page sidebar hint and assumptions
+  text now describe lump sums as one-off spending throughout, not income.
+
+The scenario schema and validation rules are unchanged, so a saved or exported
+scenario from an earlier Alpha still loads; only the projected result changes
+for scenarios using lump-sum withdrawals.
+
 ## Alpha 0.2.0, hosted version added - 2026-08-05
 
 The simulator itself is unchanged and remains **Alpha 0.2.0**. This entry covers

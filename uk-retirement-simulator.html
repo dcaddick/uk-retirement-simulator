@@ -182,7 +182,7 @@
   <div class="top-notice">Local, reproducible UK retirement planning. Estimate only; not financial, tax or pension advice.</div>
   <header>
     <div class="header-row">
-      <div><h1 id="page-title">UK Retirement Simulator <span class="muted">Alpha 0.2.0</span></h1><p>A transparent two-person household projection. Working estimate, not financial advice.</p></div>
+      <div><h1 id="page-title">UK Retirement Simulator <span class="muted">Alpha 0.3.0</span></h1><p>A transparent two-person household projection. Working estimate, not financial advice.</p></div>
       <nav class="header-actions" aria-label="Scenario actions">
         <button type="button" id="new-scenario-header">New</button>
         <button type="button" id="save-scenario-header">Save locally</button>
@@ -259,7 +259,7 @@
       </div><span class="error" data-error-for="household.drawdownPriority"></span></details>
 
       <details class="panel group"><summary><h2>Lump sum withdrawals</h2></summary>
-        <p class="muted">Add one-off withdrawals by the oldest person’s age. They are shown as income for that year and deducted from the selected source after growth, before regular spending is funded.</p>
+        <p class="muted">Add one-off withdrawals by the oldest person’s age. They are one-off spending, not income: the amount is deducted from the selected source after growth and does not count towards funding regular household spending.</p>
         <div id="lump-sum-list"></div>
         <button type="button" id="add-lump-sum">Add lump sum withdrawal</button>
         <span class="error" data-error-for="lumpSumWithdrawals"></span>
@@ -300,7 +300,7 @@
               <li>Salary and contributions run only before each person's retirement age.</li>
               <li>Contributions are added before fixed annual private-pension growth.</li>
               <li>State Pension uses the visible amount and start age entered for each person.</li>
-              <li>Dated lump-sum withdrawals are applied after growth and before regular spending drawdown.</li>
+              <li>Dated lump-sum withdrawals are one-off spending: applied after growth and deducted from the selected source, but not counted as income towards regular spending drawdown.</li>
               <li>Household income is cumulative: State Pension counts first, then drawdown tops up the gap.</li>
             </ul></div>
             <div><h3>What it leaves out</h3><ul>
@@ -524,11 +524,14 @@
             });
           const lumpSumIncome = lumpSumDraws.total;
           const statePension = people.map((person, index) => ages[index] >= person.statePension.startAge ? person.statePension.annualAmount : 0);
+          // Lump sums are one-off spending, not income: they reduce their source
+          // balance above but must not displace the ordinary drawdown that funds
+          // this year's household spending target.
           const income = {
             salary: sum(salary),
             statePension: sum(statePension),
             lumpSum: lumpSumIncome,
-            total: sum(salary) + sum(statePension) + lumpSumIncome
+            total: sum(salary) + sum(statePension)
           };
           const inflationFactor = (1 + household.inflationPct / 100) ** yearIndex;
           const preferred = household.preferredAnnual * inflationFactor;
@@ -869,13 +872,16 @@
         const margin = { top: 22, right: 22, bottom: 42, left: 64 };
         const plotWidth = width - margin.left - margin.right;
         const plotHeight = height - margin.top - margin.bottom;
+        // Lump sums are one-off spending, not a funding source, so they are excluded
+        // from the funding stack and drawn as a separate floating block above it
+        // instead (matching the AU chart's treatment). Both need to fit the axis range.
         const values = lastProjection.flatMap((row) => {
           const item = selectedRow(row);
           const sources = balanceMode
             ? [sum(item.balances.privatePension), item.balances.savings, item.balances.cash]
-            : [item.income.salary, sum(item.statePension), item.income.lumpSum, sum(item.draws.privatePension), item.draws.savings, item.draws.cash];
+            : [item.income.salary, sum(item.statePension), sum(item.draws.privatePension), item.draws.savings, item.draws.cash];
           const stackedTotal = sources.reduce((total, value) => total + value, 0);
-          return balanceMode ? [stackedTotal] : [stackedTotal, item.spending.essential, item.spending.preferred];
+          return balanceMode ? [stackedTotal] : [stackedTotal, item.spending.essential, item.spending.preferred, stackedTotal + item.income.lumpSum];
         });
         const max = Math.max(1, ...values);
         const tickStep = max <= 50000 ? 10000 : max <= 100000 ? 20000 : 50000;
@@ -887,8 +893,8 @@
         // They go through inline style, not fill=/stroke= presentation attributes, which do not resolve var().
         const colors = balanceMode
           ? ['var(--series-pension)', 'var(--series-savings)', 'var(--series-cash)']
-          : ['var(--series-salary)', 'var(--series-state)', 'var(--series-lump)', 'var(--series-pension)', 'var(--series-savings)', 'var(--series-cash)'];
-        const labels = balanceMode ? ['Private pension balance', 'Savings balance', 'Cash balance'] : ['Salary income', 'State Pension', 'Lump sum withdrawal', 'Private pension drawdown', 'Savings drawdown', 'Cash drawdown'];
+          : ['var(--series-salary)', 'var(--series-state)', 'var(--series-pension)', 'var(--series-savings)', 'var(--series-cash)'];
+        const labels = balanceMode ? ['Private pension balance', 'Savings balance', 'Cash balance'] : ['Salary income', 'State Pension', 'Private pension drawdown', 'Savings drawdown', 'Cash drawdown'];
         legend.innerHTML = balanceMode
           ? '<span class="legend-item"><i class="swatch" style="background:var(--series-pension)"></i>Private pensions</span><span class="legend-item"><i class="swatch" style="background:var(--series-savings)"></i>Savings</span><span class="legend-item"><i class="swatch" style="background:var(--series-cash)"></i>Cash</span>'
           : '<span class="legend-item"><i class="swatch" style="background:var(--series-salary)"></i>Salary income</span><span class="legend-item"><i class="swatch" style="background:var(--series-state)"></i>State Pension</span><span class="legend-item"><i class="swatch" style="background:var(--series-lump)"></i>Lump sum withdrawal</span><span class="legend-item"><i class="swatch" style="background:var(--series-pension)"></i>Private pension drawdown</span><span class="legend-item"><i class="swatch" style="background:var(--series-savings)"></i>Savings drawdown</span><span class="legend-item"><i class="swatch" style="background:var(--series-cash)"></i>Cash drawdown</span><span class="legend-item"><i class="swatch line-swatch" style="color:var(--series-essential)"></i>Essential spending</span><span class="legend-item"><i class="swatch line-swatch preferred" style="color:var(--series-preferred)"></i>Preferred spending</span>';
@@ -918,18 +924,30 @@
           }
           const sources = balanceMode
             ? [sum(item.balances.privatePension), item.balances.savings, item.balances.cash]
-            : [item.income.salary, sum(item.statePension), item.income.lumpSum, sum(item.draws.privatePension), item.draws.savings, item.draws.cash];
+            : [item.income.salary, sum(item.statePension), sum(item.draws.privatePension), item.draws.savings, item.draws.cash];
           sources.forEach((value, source) => {
             if (value <= 0) return;
             const top = y(stacked + value); const bottom = y(stacked);
             const tooltipLines = [`Age ${Math.max(...row.ages)} · ${row.year}`, labels[source], number(value)];
-            if (!balanceMode && source === 2 && item.lumpSumWithdrawals?.length) {
-              item.lumpSumWithdrawals.filter((event) => event.drawn > 0).forEach((event) => tooltipLines.push(`${event.label} · ${lumpSumSourceLabel(event.source)} ${number(event.drawn)}`));
-            }
             const tooltipText = escapeHtml(tooltipLines.join('\n'));
             markup += `<rect class="chart-bar chart-hover-target" tabindex="0" data-chart-tooltip="${tooltipText}" aria-label="${tooltipText}" x="${x}" y="${top}" width="${barWidth}" height="${Math.max(0, bottom - top)}" style="fill:${colors[source]}"><title>${row.year}: ${labels[source]} ${number(value)}</title></rect>`;
             stacked += value;
           });
+          // Lump sums are one-off spending, not a funding source: drawn as a block
+          // floating a fixed gap above the funding stack rather than stacked inside
+          // it, so the eye does not read it as contributing to the target.
+          if (!balanceMode && item.income.lumpSum > 0) {
+            const lumpGap = 10;
+            const blockHeight = Math.max(3, y(0) - y(item.income.lumpSum));
+            const blockBottom = y(stacked) - lumpGap;
+            const blockTop = blockBottom - blockHeight;
+            const tooltipLines = [`Age ${Math.max(...row.ages)} · ${row.year}`, 'Lump sum withdrawal', number(item.income.lumpSum)];
+            if (item.lumpSumWithdrawals?.length) {
+              item.lumpSumWithdrawals.filter((event) => event.drawn > 0).forEach((event) => tooltipLines.push(`${event.label} · ${lumpSumSourceLabel(event.source)} ${number(event.drawn)}`));
+            }
+            const tooltipText = escapeHtml(tooltipLines.join('\n'));
+            markup += `<rect class="chart-bar chart-hover-target" tabindex="0" data-chart-tooltip="${tooltipText}" aria-label="${tooltipText}" x="${x}" y="${blockTop}" width="${barWidth}" height="${blockHeight}" style="fill:var(--series-lump)"><title>${row.year}: Lump sum withdrawal ${number(item.income.lumpSum)}</title></rect>`;
+          }
           if (index === 0 || index === Math.floor(lastProjection.length / 2) || index === lastProjection.length - 1) markup += `<text class="chart-label" x="${centreX}" y="${height - 14}" text-anchor="middle">${Math.max(...row.ages)}</text>`;
         });
         const last = selectedRow(lastProjection[lastProjection.length - 1]);
@@ -967,7 +985,7 @@
       };
       const renderTable = () => {
         const head = document.querySelector('#results-table thead'); const body = document.querySelector('#results-table tbody');
-        head.innerHTML = '<tr><th>Year / age</th><th>Salary income</th><th>State Pension</th><th>Lump sum income</th><th>Private drawdown</th><th>Savings drawdown</th><th>Cash drawdown</th><th>Essential spending</th><th>Preferred shortfall</th><th>Private pension balance</th><th>Savings balance</th><th>Cash balance</th><th>Ending balances</th></tr>';
+        head.innerHTML = '<tr><th>Year / age</th><th>Salary income</th><th>State Pension</th><th>Lump sum withdrawn</th><th>Private drawdown</th><th>Savings drawdown</th><th>Cash drawdown</th><th>Essential spending</th><th>Preferred shortfall</th><th>Private pension balance</th><th>Savings balance</th><th>Cash balance</th><th>Ending balances</th></tr>';
         body.innerHTML = lastProjection.map((row) => {
           const item = selectedRow(row); const privateDraw = sum(item.draws.privatePension); const balance = sum(item.balances.privatePension) + item.balances.savings + item.balances.cash;
           return `<tr><th scope="row">${row.year} / ${Math.max(...row.ages)}</th><td>${number(item.income.salary)}</td><td>${number(sum(item.statePension))}</td><td>${number(item.income.lumpSum)}</td><td>${number(privateDraw)}</td><td>${number(item.draws.savings)}</td><td>${number(item.draws.cash)}</td><td>${number(item.spending.essential)}</td><td>${number(item.spending.preferredShortfall)}</td><td>${number(sum(item.balances.privatePension))}</td><td>${number(item.balances.savings)}</td><td>${number(item.balances.cash)}</td><td>${number(balance)}</td></tr>`;

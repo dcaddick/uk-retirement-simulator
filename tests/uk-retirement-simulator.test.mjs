@@ -276,7 +276,7 @@ test('validates lump-sum withdrawal fields and keeps older scenarios migratable'
   assert.ok(result.errors.some((error) => error.field === 'lumpSumWithdrawals[0].label'));
 });
 
-test('applies a lump-sum withdrawal as income and deducts it from its source', () => {
+test('applies a lump-sum withdrawal as one-off spending, deducted from its source without funding regular drawdown', () => {
   const scenario = fixture((value) => {
     value.startYear = 2030;
     value.household.endAge = 60;
@@ -297,11 +297,47 @@ test('applies a lump-sum withdrawal as income and deducts it from its source', (
 
   const [row] = projectScenario(scenario);
 
+  // The lump sum still reports as drawn and reduces its source, but must not
+  // displace the ordinary drawdown that funds this year's spending target:
+  // with savings emptied by the lump sum and no other resources, the full
+  // preferred spend goes unfunded rather than reading as covered.
   assert.equal(row.income.lumpSum, 10000);
-  assert.equal(row.income.total, 10000);
+  assert.equal(row.income.total, 0);
   assert.equal(row.draws.total, 0);
   assert.equal(row.balances.savings, 0);
   assert.deepEqual(row.lumpSumWithdrawals, [{ age: 60, amount: 15000, source: 'savings', label: 'Home project', drawn: 10000, shortfall: 5000 }]);
+  assert.equal(row.spending.preferredShortfall, 10000);
+});
+
+test('a lump-sum withdrawal does not displace the ordinary drawdown that funds spending', () => {
+  const scenario = fixture((value) => {
+    value.startYear = 2030;
+    value.household.endAge = 60;
+    value.household.essentialAnnual = 5000;
+    value.household.preferredAnnual = 5000;
+    value.people.forEach((person) => {
+      person.age = 60;
+      person.retirementAge = 60;
+      person.salary = 0;
+      person.annualPensionContribution = 0;
+      person.privatePension = { pot: 0, growthPct: 0 };
+      person.statePension = { startAge: 70, annualAmount: 0 };
+    });
+    value.savings = { amount: 20000, interestPct: 0 };
+    value.cash = { amount: 10000, interestPct: 0 };
+    value.lumpSumWithdrawals = [{ age: 60, amount: 8000, source: 'cash', label: 'Kitchen refit' }];
+  });
+
+  const [row] = projectScenario(scenario);
+
+  // Regression for #17: previously the lump sum counted as income, so it
+  // fully covered the spending target and ordinary drawdown never ran.
+  assert.equal(row.income.lumpSum, 8000);
+  assert.equal(row.income.total, 0);
+  assert.equal(row.draws.savings, 5000);
+  assert.equal(row.draws.total, 5000);
+  assert.equal(row.balances.savings, 15000);
+  assert.equal(row.balances.cash, 2000);
   assert.equal(row.spending.preferredShortfall, 0);
 });
 

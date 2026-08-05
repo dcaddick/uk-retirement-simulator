@@ -17,17 +17,18 @@ For each projection year, the simulator:
    that person's configured annual private-pension growth rate to the resulting
    balance. Configured savings and cash interest are applied to their balances.
 4. Applies any configured lump-sum withdrawals for the oldest person's current
-   age in that projection year, after growth. The fulfilled amount is shown as
-   one-off income and deducted from the selected private-pension, savings or
-   cash source; a source shortfall is reported on the annual row rather than
-   allowing a balance to become negative.
+   age in that projection year, after growth. The fulfilled amount is one-off
+   spending, not income: it is deducted from the selected private-pension,
+   savings or cash source but does not count towards funding this year's
+   household spending target. A source shortfall is reported on the annual row
+   rather than allowing a balance to become negative.
 5. Adds the configured State Pension amount for each person whose age has
    reached their configured State Pension start age. These are user-entered
    assumptions, not a live lookup of current policy or entitlement.
 6. Increases essential and preferred spending from the starting annual amounts
    by the configured inflation rate for each elapsed year.
-7. Treats household resources as cumulative. Salary, State Pension and any
-   fulfilled lump-sum income count towards the spending target first; the simulator then draws only the
+7. Treats household resources as cumulative. Salary and State Pension count
+   towards the spending target first; the simulator then draws only the
    remaining gap from private pensions, savings and cash in the visible
    household drawdown order until preferred spending is met or all selected
    balances are exhausted. State Pension is therefore alongside private
@@ -67,8 +68,9 @@ saved locally or exported as JSON.
   unfunded amount is reported as a shortfall.
 - **Lump-sum withdrawals:** dated one-off amounts entered with an age, source
   and optional description. The simulator fulfils them from the selected source
-  after that year's growth, shows the fulfilled amount as income, and never
-  permits the source balance to go below zero.
+  after that year's growth. The fulfilled amount is one-off spending, not
+  income: it never permits the source balance to go below zero, but it also
+  does not count towards funding that year's regular household spending.
 - **Inflation:** one fixed annual percentage increases both spending targets
   from the first projection year. The “today’s money” display removes this
   same assumed inflation and does not represent a separate economic forecast.
