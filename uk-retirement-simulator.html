@@ -62,6 +62,12 @@
     .panel-hint { margin: .5rem 0 0; color: var(--muted); font-size: 11px; }
     h3 { margin: .8rem 0 .35rem; font-size: 12px; }
     .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .45rem .55rem; }
+    /* Both people's fields side by side, row-aligned, so a matching field (e.g.
+       retirement age) can be compared without scrolling between two panels. */
+    .people-split { display: grid; grid-template-columns: 1fr 1fr; gap: 0 .7rem; }
+    .people-split fieldset { min-width: 0; border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .45rem; }
+    .people-split fieldset + fieldset { padding-left: .7rem; border-left: 1px solid var(--line); }
+    .people-split legend { padding: 0 0 .2rem; color: var(--accent); font-size: 10px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
     label { display: flex; min-width: 0; flex-direction: column; gap: .18rem; color: var(--muted); font-size: 11px; font-weight: 400; }
     input, select, button { width: 100%; font: inherit; padding: .38rem .45rem; border: 1px solid var(--line); border-radius: 6px; background: var(--panel-2); color: var(--text); }
     /* :focus-visible, not :focus, so the ring is a keyboard affordance rather than
@@ -160,7 +166,7 @@
     @media (max-width: 1200px) { .app-shell { grid-template-columns: minmax(0, clamp(230px, var(--left-w), 34vw)) 6px minmax(0, 1fr); } }
     @media (max-width: 900px) { .app-shell { grid-template-columns: 1fr; } #splitter { display: none; } .sidebar { padding-right: 0; border-bottom: 1px solid var(--line); padding-bottom: 4px; } .workspace { padding-left: 0; } }
     @media (max-width: 600px) { .app-shell { padding: 8px; } .summary-grid { grid-template-columns: 1fr 1fr; } .header-row { align-items: flex-start; flex-direction: column; } .header-meta { margin-left: 0; text-align: left; } }
-    @media (max-width: 480px) { .summary-grid, .form-grid, .actions { grid-template-columns: 1fr; } .disclosure-columns { columns: 1; } }
+    @media (max-width: 480px) { .summary-grid, .form-grid, .actions, .people-split { grid-template-columns: 1fr; } .people-split fieldset + fieldset { padding-left: 0; border-left: 0; border-top: 1px solid var(--line); padding-top: .45rem; margin-top: .1rem; } .disclosure-columns { columns: 1; } }
     /* Touch pointers: 44px minimum targets, and 16px inputs so iOS does not zoom on focus. */
     @media (pointer: coarse) {
       button { min-height: 44px; }
@@ -185,7 +191,7 @@
   <div class="top-notice">Local, reproducible UK retirement planning. Estimate only; not financial, tax or pension advice.</div>
   <header>
     <div class="header-row">
-      <div><h1 id="page-title">UK Retirement Simulator <span class="muted">Alpha 0.5.0</span></h1><p>A transparent two-person household projection. Working estimate, not financial advice.</p></div>
+      <div><h1 id="page-title">UK Retirement Simulator <span class="muted">Alpha 0.6.0</span></h1><p>A transparent two-person household projection. Working estimate, not financial advice.</p></div>
       <nav class="header-actions" aria-label="Scenario actions">
         <button type="button" id="new-scenario-header">New</button>
         <button type="button" id="save-scenario-header">Save locally</button>
@@ -217,32 +223,33 @@
         <p class="notice" id="action-status" role="status" aria-live="polite"></p>
       </details>
 
-      <details class="panel group" open><summary><h2>Person 1</h2></summary>
-        <p class="panel-hint">Salary and contributions stop at the retirement age entered here.</p>
-        <div class="form-grid">
-        <label>Name <input type="text" data-field="people[0].name" value="Person 1"><span class="error" data-error-for="people[0].name"></span></label>
-        <label>Current age <input type="number" step="1" data-field="people[0].age" value="58"><span class="error" data-error-for="people[0].age"></span></label>
-        <label>Retirement age <input type="number" step="1" data-field="people[0].retirementAge" value="60"><span class="error" data-error-for="people[0].retirementAge"></span></label>
-        <label>Salary (£/year) <input type="number" min="0" step="100" data-field="people[0].salary" value="45000"><span class="error" data-error-for="people[0].salary"></span></label>
-        <label>Pension contribution (£/year) <input type="number" min="0" step="100" data-field="people[0].annualPensionContribution" value="9000"><span class="error" data-error-for="people[0].annualPensionContribution"></span></label>
-        <label>Private pension pot (£) <input type="number" min="0" step="1000" data-field="people[0].privatePension.pot" value="180000"><span class="error" data-error-for="people[0].privatePension.pot"></span></label>
-        <label>Private pension growth (%) <input type="number" min="0" step="0.1" data-field="people[0].privatePension.growthPct" value="4.5"><span class="error" data-error-for="people[0].privatePension.growthPct"></span></label>
-        <label>State Pension start age <input type="number" step="1" data-field="people[0].statePension.startAge" value="67"><span class="error" data-error-for="people[0].statePension.startAge"></span></label>
-        <label>State Pension (£/year) <input type="number" min="0" step="100" data-field="people[0].statePension.annualAmount" value="12500"><span class="error" data-error-for="people[0].statePension.annualAmount"></span></label>
-      </div></details>
-
-      <details class="panel group" open><summary><h2>Person 2</h2></summary>
-        <p class="panel-hint">Salary and contributions stop at the retirement age entered here.</p>
-        <div class="form-grid">
-        <label>Name <input type="text" data-field="people[1].name" value="Person 2"><span class="error" data-error-for="people[1].name"></span></label>
-        <label>Current age <input type="number" step="1" data-field="people[1].age" value="56"><span class="error" data-error-for="people[1].age"></span></label>
-        <label>Retirement age <input type="number" step="1" data-field="people[1].retirementAge" value="60"><span class="error" data-error-for="people[1].retirementAge"></span></label>
-        <label>Salary (£/year) <input type="number" min="0" step="100" data-field="people[1].salary" value="30000"><span class="error" data-error-for="people[1].salary"></span></label>
-        <label>Pension contribution (£/year) <input type="number" min="0" step="100" data-field="people[1].annualPensionContribution" value="6000"><span class="error" data-error-for="people[1].annualPensionContribution"></span></label>
-        <label>Private pension pot (£) <input type="number" min="0" step="1000" data-field="people[1].privatePension.pot" value="120000"><span class="error" data-error-for="people[1].privatePension.pot"></span></label>
-        <label>Private pension growth (%) <input type="number" min="0" step="0.1" data-field="people[1].privatePension.growthPct" value="4.5"><span class="error" data-error-for="people[1].privatePension.growthPct"></span></label>
-        <label>State Pension start age <input type="number" step="1" data-field="people[1].statePension.startAge" value="67"><span class="error" data-error-for="people[1].statePension.startAge"></span></label>
-        <label>State Pension (£/year) <input type="number" min="0" step="100" data-field="people[1].statePension.annualAmount" value="12500"><span class="error" data-error-for="people[1].statePension.annualAmount"></span></label>
+      <details class="panel group" open><summary><h2>People</h2></summary>
+        <p class="panel-hint">Salary and contributions stop at the retirement age entered here. Both people's fields sit side by side so matching rows, like retirement age, can be compared directly.</p>
+        <div class="people-split">
+        <fieldset>
+          <legend>Person 1</legend>
+          <label>Name <input type="text" data-field="people[0].name" value="Person 1"><span class="error" data-error-for="people[0].name"></span></label>
+          <label>Current age <input type="number" step="1" data-field="people[0].age" value="58"><span class="error" data-error-for="people[0].age"></span></label>
+          <label>Retirement age <input type="number" step="1" data-field="people[0].retirementAge" value="60"><span class="error" data-error-for="people[0].retirementAge"></span></label>
+          <label>Salary (£/year) <input type="number" min="0" step="100" data-field="people[0].salary" value="45000"><span class="error" data-error-for="people[0].salary"></span></label>
+          <label>Pension contribution (£/year) <input type="number" min="0" step="100" data-field="people[0].annualPensionContribution" value="9000"><span class="error" data-error-for="people[0].annualPensionContribution"></span></label>
+          <label>Private pension pot (£) <input type="number" min="0" step="1000" data-field="people[0].privatePension.pot" value="180000"><span class="error" data-error-for="people[0].privatePension.pot"></span></label>
+          <label>Private pension growth (%) <input type="number" min="0" step="0.1" data-field="people[0].privatePension.growthPct" value="4.5"><span class="error" data-error-for="people[0].privatePension.growthPct"></span></label>
+          <label>State Pension start age <input type="number" step="1" data-field="people[0].statePension.startAge" value="67"><span class="error" data-error-for="people[0].statePension.startAge"></span></label>
+          <label>State Pension (£/year) <input type="number" min="0" step="100" data-field="people[0].statePension.annualAmount" value="12500"><span class="error" data-error-for="people[0].statePension.annualAmount"></span></label>
+        </fieldset>
+        <fieldset>
+          <legend>Person 2</legend>
+          <label>Name <input type="text" data-field="people[1].name" value="Person 2"><span class="error" data-error-for="people[1].name"></span></label>
+          <label>Current age <input type="number" step="1" data-field="people[1].age" value="56"><span class="error" data-error-for="people[1].age"></span></label>
+          <label>Retirement age <input type="number" step="1" data-field="people[1].retirementAge" value="60"><span class="error" data-error-for="people[1].retirementAge"></span></label>
+          <label>Salary (£/year) <input type="number" min="0" step="100" data-field="people[1].salary" value="30000"><span class="error" data-error-for="people[1].salary"></span></label>
+          <label>Pension contribution (£/year) <input type="number" min="0" step="100" data-field="people[1].annualPensionContribution" value="6000"><span class="error" data-error-for="people[1].annualPensionContribution"></span></label>
+          <label>Private pension pot (£) <input type="number" min="0" step="1000" data-field="people[1].privatePension.pot" value="120000"><span class="error" data-error-for="people[1].privatePension.pot"></span></label>
+          <label>Private pension growth (%) <input type="number" min="0" step="0.1" data-field="people[1].privatePension.growthPct" value="4.5"><span class="error" data-error-for="people[1].privatePension.growthPct"></span></label>
+          <label>State Pension start age <input type="number" step="1" data-field="people[1].statePension.startAge" value="67"><span class="error" data-error-for="people[1].statePension.startAge"></span></label>
+          <label>State Pension (£/year) <input type="number" min="0" step="100" data-field="people[1].statePension.annualAmount" value="12500"><span class="error" data-error-for="people[1].statePension.annualAmount"></span></label>
+        </fieldset>
       </div></details>
 
       <details class="panel group pot"><summary><h2>Cash and savings</h2></summary>

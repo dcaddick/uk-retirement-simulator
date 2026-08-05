@@ -4,6 +4,22 @@ Version numbering is independent of the release label. The project is Alpha and
 stays Alpha until that is changed deliberately; reaching a particular version
 number does not imply Beta.
 
+## Alpha 0.6.0 - 2026-08-05
+
+Presentation only, per #20.
+
+Changed:
+
+- Person 1 and Person 2 are now one People section with both people's fields
+  side by side in a two-column layout, row-aligned so a matching field (for
+  example, retirement age) can be compared directly instead of scrolling
+  between two stacked panels. Matches the Australian simulator's People
+  section. Collapses to a single column under 480px width.
+
+The scenario schema and validation rules are unchanged; this is a markup and
+layout change only. The sidebar heading-order assertion in the test suite is
+updated to match (`Person 1`, `Person 2` replaced by `People`).
+
 ## Alpha 0.5.0 - 2026-08-05
 
 Bundles two small, related schema additions in one version bump, per #9 and
