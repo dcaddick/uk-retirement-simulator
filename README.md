@@ -7,15 +7,41 @@ progress, not financial, tax, legal or pension advice.
 
 The version shown in the page header matches `CHANGELOG.md`. Quote it when
 reporting feedback, since the app is distributed as a single file that users
-save locally.
+save locally, and one saved copy is otherwise indistinguishable from another.
 
-The project will remain Alpha while it gathers definitive feedback from UK
-users. A future Beta label will require that feedback and a separate review of
-the model’s assumptions and presentation.
+The version number and the release label are independent. The project is Alpha
+and stays Alpha until that is changed deliberately: reaching any particular
+version number does not on its own imply Beta. A future Beta label will require
+definitive feedback from UK users and a separate review of the model's
+assumptions and presentation.
 
 The MVP models State Pension, simple private-pension drawdown, dated lump-sum
 withdrawals, savings and cash in a deterministic annual projection. Read the [model methodology](docs/MODEL-METHODOLOGY.md)
 for the annual calculation sequence, assumptions and deliberate exclusions.
+
+## Open the simulator
+
+[**Download UK Retirement Simulator**](https://github.com/dcaddick/retirement-simulator-uk/raw/master/uk-retirement-simulator.html)
+
+[**Using a tablet? Open the simulator in your browser**](https://dcaddick.github.io/retirement-simulator-uk/)
+
+Single HTML file, no installation, opens in a modern browser.
+
+The hosted version is the same file, published straight from `master`. It exists
+because saving and re-opening a local HTML file is awkward on a tablet, where
+there is often no obvious file manager. Tap the second link and the simulator
+runs; nothing to download and nothing to install.
+
+Both versions behave identically and neither sends your figures anywhere.
+Scenario data stays in the local storage of whichever browser you used, so a
+scenario saved from a downloaded file does not appear on the hosted page and the
+reverse is also true. Move a scenario between them with **Export JSON** and
+**Import JSON**.
+
+One difference worth knowing: the downloaded file makes no network requests at
+all, which the test suite enforces. The hosted page is served by GitHub, so
+GitHub sees ordinary web-request metadata including your IP address. It still
+never receives the contents of your scenario.
 
 ## Run locally
 

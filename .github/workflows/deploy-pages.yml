@@ -1,0 +1,66 @@
+name: Deploy UK simulator to GitHub Pages
+
+# Publishes uk-retirement-simulator.html as the Pages index so tablet users can
+# open the simulator by tapping a link, without saving a file first.
+#
+# The published copy is byte-identical to the file in the repository: the build
+# copies it and then compares the two. Nothing is minified, injected or rewritten.
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'uk-retirement-simulator.html'
+      - '.github/workflows/deploy-pages.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && 'master' || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Run regression suite
+        run: node --test tests/uk-retirement-simulator.test.mjs
+      - name: Build Pages artifact
+        shell: bash
+        run: |
+          mkdir -p _site
+          cp uk-retirement-simulator.html _site/index.html
+          touch _site/.nojekyll
+          # Refuse to publish anything that is not the reviewed file.
+          cmp uk-retirement-simulator.html _site/index.html
+          test "$(find _site -maxdepth 1 -type f | wc -l)" -eq 2
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '_site'
+
+  deploy:
+    needs: validate
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    steps:
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+      - name: Deploy Pages artifact
+        id: deployment
+        uses: actions/deploy-pages@v4

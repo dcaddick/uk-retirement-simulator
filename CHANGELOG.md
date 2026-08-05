@@ -1,5 +1,28 @@
 # Changelog
 
+Version numbering is independent of the release label. The project is Alpha and
+stays Alpha until that is changed deliberately; reaching a particular version
+number does not imply Beta.
+
+## Alpha 0.2.0, hosted version added - 2026-08-05
+
+The simulator itself is unchanged and remains **Alpha 0.2.0**. This entry covers
+distribution only.
+
+Added:
+
+- A GitHub Pages deployment publishing `uk-retirement-simulator.html` as the
+  site index, so tablet users can open the simulator by tapping a link instead
+  of saving and re-opening a local file. The build copies the file and then
+  compares the two, so the published copy is byte-identical to the reviewed one.
+- A download link and a hosted link in the README, with a note on the one
+  behavioural difference between them: the downloaded file makes no network
+  requests at all, while the hosted page is served by GitHub and so exposes
+  ordinary web-request metadata including the visitor IP address. Scenario
+  contents are not sent to GitHub in either case.
+- A regression-test workflow running the suite on pull requests and on pushes
+  to `master`. The repository previously had no CI.
+
 ## Alpha 0.2.0 - 2026-08-05
 
 Presentation-layer pass closing UI gaps against the Australian simulator. The
