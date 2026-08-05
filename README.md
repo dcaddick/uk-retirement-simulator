@@ -2,7 +2,7 @@
 
 An early-stage, transparent retirement-income modelling tool for approaching-retirement UK couples.
 
-**Release status: Alpha 0.7.0.** The simulator is an estimate-only work in
+**Release status: Alpha 0.7.1.** The simulator is an estimate-only work in
 progress, not financial, tax, legal or pension advice.
 
 The version shown in the page header matches `CHANGELOG.md`. Quote it when
@@ -49,9 +49,11 @@ No build step or server is required. Open `uk-retirement-simulator.html` directl
 in a modern browser. The page is self-contained and makes no network requests.
 
 The page opens in a dark theme; use **Light theme** in the header to switch.
-The theme and the input-panel width are remembered on this device. Drag the
-divider between the inputs and the results to resize, or focus it and use the
-left and right arrow keys.
+The theme, the input-panel width and the chart height are remembered on this
+device. Drag the divider between the inputs and the results to resize the
+input panel, or focus it and use the left and right arrow keys. Drag the
+divider below the chart to resize the chart, or focus it and use the up and
+down arrow keys.
 
 The starter scenario is fictional and illustrative, not statistically typical.
 All assumptions are visible and editable in the page. Give the scenario a name

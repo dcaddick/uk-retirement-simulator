@@ -4,6 +4,28 @@ Version numbering is independent of the release label. The project is Alpha and
 stays Alpha until that is changed deliberately; reaching a particular version
 number does not imply Beta.
 
+## Alpha 0.7.1 - 2026-08-06
+
+Adds an adjustable divider between the chart and the table, per #11.
+
+Not a CSS-only change: UK's chart is SVG with a `viewBox`, not a canvas, so
+raising its CSS height alone would letterbox it (blank space added, plot
+unchanged). The chart's `height` is now a variable the divider drives, and
+both the `viewBox` and the plot geometry (gridlines, axis, bar positions) are
+recomputed on every drag step and keypress, not just the CSS box.
+
+Added:
+
+- A horizontal divider below the chart, matching the existing vertical
+  input-panel divider: `role="separator"`, draggable, and operable with the
+  up/down arrow keys when focused. The chosen height is remembered on this
+  device. Hidden below 600px width, where the chart already falls back to a
+  fixed height, matching how the vertical divider hides below the stacking
+  breakpoint.
+
+The scenario schema and projection engine are unchanged; this is a chart
+presentation change only.
+
 ## Alpha 0.7.0 - 2026-08-05
 
 Presentation only, per #21. Deliberately scoped down from the issue's full

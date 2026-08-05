@@ -50,6 +50,8 @@
     .workspace { min-width: 0; padding-left: 12px; }
     #splitter { align-self: stretch; border: 0; border-radius: 3px; padding: 0; background: var(--line); opacity: .6; cursor: col-resize; touch-action: none; transition: opacity .15s ease, background .15s ease; }
     #splitter:hover, #splitter.dragging { opacity: 1; background: var(--accent); }
+    #chart-divider { display: block; width: 100%; height: 6px; margin: 8px 0; border: 0; border-radius: 3px; padding: 0; background: var(--line); opacity: .6; cursor: row-resize; touch-action: none; transition: opacity .15s ease, background .15s ease; }
+    #chart-divider:hover, #chart-divider.dragging { opacity: 1; background: var(--accent); }
     .panel, .results, .disclosure { margin: 0 0 10px; padding: 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); }
     fieldset.panel { min-width: 0; }
     /* Asset-class accent, so a panel can be found by colour without reading headings. */
@@ -127,7 +129,7 @@
     .chart-toolbar { display: flex; align-items: center; justify-content: flex-end; gap: .75rem; margin-top: .45rem; padding-top: .45rem; border-top: 1px solid var(--line); }
     .display-control { display: flex; flex-direction: row; align-items: center; gap: .45rem; color: var(--muted); font-size: 11px; }
     .display-control select { width: auto; min-width: 170px; padding: .3rem .45rem; }
-    svg { display: block; width: 100%; height: 350px; margin-top: .55rem; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }
+    svg { display: block; width: 100%; height: var(--chart-h, 350px); margin-top: .55rem; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }
     .legend { display: flex; flex-wrap: wrap; gap: .55rem .9rem; margin-top: .65rem; color: var(--muted); font-size: 11px; }
     .legend-item { display: inline-flex; align-items: center; white-space: nowrap; }
     .swatch { display: inline-block; width: .72rem; height: .72rem; margin-right: .3rem; border-radius: 2px; }
@@ -143,7 +145,7 @@
     .chart-tooltip { position: absolute; z-index: 2; max-width: 240px; padding: .45rem .55rem; border: 1px solid var(--accent); border-radius: 6px; background: var(--tooltip-bg); color: var(--text); box-shadow: 0 5px 16px var(--shadow); font-size: 11px; line-height: 1.35; white-space: pre-line; pointer-events: none; }
     .chart-hover-target { cursor: crosshair; }
     .chart-hover-target:focus-visible { outline: 2px solid var(--warn); outline-offset: 1px; }
-    @media (max-width: 600px) { svg { height: 310px; } .chart-intro { line-height: 1.35; } .chart-toolbar { justify-content: stretch; } .display-control { width: 100%; justify-content: space-between; } .lump-grid { grid-template-columns: 1fr; } }
+    @media (max-width: 600px) { svg { height: 310px; } #chart-divider { display: none; } .chart-intro { line-height: 1.35; } .chart-toolbar { justify-content: stretch; } .display-control { width: 100%; justify-content: space-between; } .lump-grid { grid-template-columns: 1fr; } }
     .muted { color: var(--muted); }
     .disclosure { border-color: var(--warn); background: var(--disclosure-bg); color: var(--text); }
     .disclosure h2 { margin: 0 0 .55rem; color: var(--warn); font-size: 12px; }
@@ -191,7 +193,7 @@
   <div class="top-notice">Local, reproducible UK retirement planning. Estimate only; not financial, tax or pension advice.</div>
   <header>
     <div class="header-row">
-      <div><h1 id="page-title">UK Retirement Simulator <span class="muted">Alpha 0.7.0</span></h1><p>A transparent two-person household projection. Working estimate, not financial advice.</p></div>
+      <div><h1 id="page-title">UK Retirement Simulator <span class="muted">Alpha 0.7.1</span></h1><p>A transparent two-person household projection. Working estimate, not financial advice.</p></div>
       <nav class="header-actions" aria-label="Scenario actions">
         <button type="button" id="new-scenario-header">New</button>
         <button type="button" id="save-scenario-header">Save locally</button>
@@ -303,6 +305,7 @@
       <div class="legend" id="chart-legend" aria-label="Chart legend"></div>
       <div class="chart-frame"><svg id="annual-chart" viewBox="0 0 1000 350" role="img" aria-label="Annual income, drawdown and spending target chart"></svg><div id="chart-tooltip" class="chart-tooltip" role="tooltip" hidden></div></div>
       <div class="chart-toolbar"><label class="display-control" for="display-mode">Display <select id="display-mode"><option value="todaysMoney">Today’s pounds (2026)</option><option value="nominal">Future pounds</option></select></label></div>
+      <button type="button" id="chart-divider" role="separator" aria-orientation="horizontal" aria-label="Resize the chart" aria-valuemin="220" aria-valuemax="600" aria-valuenow="350"></button>
       <h3>Annual detail</h3>
       <div class="table-wrap"><table id="results-table"><caption class="muted">The table provides the exact values represented in the chart, ordered assets first then income, drawdown and outcome. Salary and State Pension are income; drawdown tops up the remaining gap to the household spending target. Event names any lump-sum withdrawal that year; +/- shows “ok” or the shortfall against the preferred target.</caption><thead></thead><tbody></tbody></table></div>
       </section>
@@ -678,6 +681,7 @@
       let lastProjection = projectScenario(lastValidScenario);
       let displayMode = 'todaysMoney';
       let chartMode = 'income';
+      let chartHeight = 350;
       const currency = new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP', maximumFractionDigits: 0 });
       const number = (value) => Number.isFinite(value) ? currency.format(value) : '-';
       const fieldId = (field) => `field-${field.replace(/\[(\d+)\]/g, '-$1').replace(/[^a-zA-Z0-9]+/g, '-')}`;
@@ -902,7 +906,8 @@
         const legend = document.querySelector('#chart-legend');
         const intro = document.querySelector('#chart-intro');
         const balanceMode = chartMode === 'balance';
-        const width = 1000; const height = 350;
+        const width = 1000; const height = chartHeight;
+        svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
         const margin = { top: 22, right: 22, bottom: 42, left: 64 };
         const plotWidth = width - margin.left - margin.right;
         const plotHeight = height - margin.top - margin.bottom;
@@ -1100,6 +1105,44 @@
         writeStored('uk-retirement-simulator-width', splitter.getAttribute('aria-valuenow'));
       });
 
+      const chartDivider = document.querySelector('#chart-divider');
+      const chartFrame = document.querySelector('.chart-frame');
+      const MIN_CHART_HEIGHT = 220; const MAX_CHART_HEIGHT = 600;
+      // The chart is SVG with a viewBox, not a canvas: raising its CSS height
+      // alone would letterbox it (blank space, plot unchanged), so a resize has
+      // to update chartHeight and re-render, not just set a CSS custom property.
+      const applyChartHeight = (height) => {
+        const clamped = Math.round(Math.min(MAX_CHART_HEIGHT, Math.max(MIN_CHART_HEIGHT, height)));
+        chartHeight = clamped;
+        chartFrame.style.setProperty('--chart-h', `${clamped}px`);
+        chartDivider.setAttribute('aria-valuenow', String(clamped));
+        renderChart();
+        return clamped;
+      };
+      chartDivider.addEventListener('pointerdown', (event) => {
+        event.preventDefault();
+        chartDivider.setPointerCapture(event.pointerId);
+        chartDivider.classList.add('dragging');
+        const originY = event.clientY;
+        const originHeight = chartHeight;
+        const onMove = (move) => applyChartHeight(originHeight + (move.clientY - originY));
+        const onUp = () => {
+          chartDivider.classList.remove('dragging');
+          chartDivider.removeEventListener('pointermove', onMove);
+          chartDivider.removeEventListener('pointerup', onUp);
+          writeStored('uk-retirement-simulator-chart-height', chartDivider.getAttribute('aria-valuenow'));
+        };
+        chartDivider.addEventListener('pointermove', onMove);
+        chartDivider.addEventListener('pointerup', onUp);
+      });
+      chartDivider.addEventListener('keydown', (event) => {
+        const step = event.key === 'ArrowUp' ? -20 : event.key === 'ArrowDown' ? 20 : 0;
+        if (!step) return;
+        event.preventDefault();
+        applyChartHeight(chartHeight + step);
+        writeStored('uk-retirement-simulator-chart-height', chartDivider.getAttribute('aria-valuenow'));
+      });
+
       const modal = document.querySelector('#confirm-modal');
       const modalMessage = document.querySelector('#confirm-modal-message');
       const modalOk = document.querySelector('#confirm-modal-ok');
@@ -1202,6 +1245,7 @@
       });
       applyTheme(readStored('uk-retirement-simulator-theme') === 'light' ? 'light' : 'dark');
       applyWidth(Number(readStored('uk-retirement-simulator-width')) || 275);
+      applyChartHeight(Number(readStored('uk-retirement-simulator-chart-height')) || 350);
       setupValidationAccessibility(); fillForm(sample); showErrors([]); renderResults();
     })();
   </script>
