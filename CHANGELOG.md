@@ -4,6 +4,36 @@ Version numbering is independent of the release label. The project is Alpha and
 stays Alpha until that is changed deliberately; reaching a particular version
 number does not imply Beta.
 
+## Alpha 0.7.0 - 2026-08-05
+
+Presentation only, per #21. Deliberately scoped down from the issue's full
+suggestion: per-person pension growth rates stay in People, and cash/savings
+interest rates stay in Cash and savings, rather than relocating alongside AU's
+Returns section. AU's Returns and inflation section is also where its
+inflation-mode selector (Treasury schedule vs. manual, near-term vs. long-run)
+lives, and that is a modelling decision reserved for #19, not a layout one, so
+none of that came along with this change.
+
+Added:
+
+- A new Returns and inflation section, holding the inflation rate (moved out
+  of the former Assumptions panel, otherwise unchanged in behaviour).
+
+Changed:
+
+- The former Assumptions panel is renamed Household and now holds only the
+  two household spending targets (essential and preferred), matching AU's
+  separation of household-level settings from per-person ones.
+- Sidebar order now runs Scenario, People, Returns and inflation, Cash and
+  savings, Drawdown order, Lump sum withdrawals, Household, closer to AU's
+  own section order. Drawdown order stays where it is: it has no AU
+  counterpart and is not part of this reordering (see the decision record in
+  #23).
+
+The scenario schema, `data-field` paths and validation are unchanged; this is
+a markup, grouping and heading change only. The sidebar heading-order
+assertion in the test suite is updated to match.
+
 ## Alpha 0.6.0 - 2026-08-05
 
 Presentation only, per #20.

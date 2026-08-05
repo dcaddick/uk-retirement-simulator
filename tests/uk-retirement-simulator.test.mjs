@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const html = fs.readFileSync(path.join(root, 'uk-retirement-simulator.html'), 'utf8');
 test('UK MVP markup exposes the focused interface without network dependencies', () => {
-  const sections = ['Scenario', 'People', 'Cash and savings', 'Drawdown order', 'Assumptions'];
+  const sections = ['Scenario', 'People', 'Returns and inflation', 'Cash and savings', 'Drawdown order', 'Lump sum withdrawals', 'Household'];
   let previous = -1;
   for (const section of sections) {
     const position = html.indexOf(`<h2>${section}</h2>`);

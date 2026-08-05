@@ -191,7 +191,7 @@
   <div class="top-notice">Local, reproducible UK retirement planning. Estimate only; not financial, tax or pension advice.</div>
   <header>
     <div class="header-row">
-      <div><h1 id="page-title">UK Retirement Simulator <span class="muted">Alpha 0.6.0</span></h1><p>A transparent two-person household projection. Working estimate, not financial advice.</p></div>
+      <div><h1 id="page-title">UK Retirement Simulator <span class="muted">Alpha 0.7.0</span></h1><p>A transparent two-person household projection. Working estimate, not financial advice.</p></div>
       <nav class="header-actions" aria-label="Scenario actions">
         <button type="button" id="new-scenario-header">New</button>
         <button type="button" id="save-scenario-header">Save locally</button>
@@ -252,6 +252,12 @@
         </fieldset>
       </div></details>
 
+      <details class="panel group"><summary><h2>Returns and inflation</h2></summary>
+        <p class="panel-hint">The inflation rate applied across the projection. Each person's private pension growth rate is set in their own People fields, and cash/savings interest rates are set in Cash and savings.</p>
+        <div class="form-grid">
+        <label>Inflation (%) <input type="number" min="0" step="0.1" data-field="household.inflationPct" value="2.5"><span class="error" data-error-for="household.inflationPct"></span></label>
+      </div></details>
+
       <details class="panel group pot"><summary><h2>Cash and savings</h2></summary>
         <p class="panel-hint">Household balances held outside the pensions. Interest is applied before any drawdown.</p>
         <div class="form-grid">
@@ -276,12 +282,11 @@
         <span class="error" data-error-for="lumpSumWithdrawals"></span>
       </details>
 
-      <details class="panel group"><summary><h2>Assumptions</h2></summary>
-        <p class="panel-hint">Household spending targets and the inflation rate applied across the projection.</p>
+      <details class="panel group"><summary><h2>Household</h2></summary>
+        <p class="panel-hint">Spending targets shared by the household, rather than any one person.</p>
         <div class="form-grid">
         <label>Essential spending (£/year) <input type="number" min="0" step="100" data-field="household.essentialAnnual" value="30000"><span class="error" data-error-for="household.essentialAnnual"></span></label>
         <label>Preferred spending (£/year) <input type="number" min="0" step="100" data-field="household.preferredAnnual" value="36000"><span class="error" data-error-for="household.preferredAnnual"></span></label>
-        <label>Inflation (%) <input type="number" min="0" step="0.1" data-field="household.inflationPct" value="2.5"><span class="error" data-error-for="household.inflationPct"></span></label>
       </div></details>
       </form>
     </aside>
