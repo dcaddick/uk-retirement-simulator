@@ -20,6 +20,15 @@ Added:
   and `prefers-reduced-motion` support.
 - Explanatory text under the sidebar panel headings and an asset-class accent
   on Cash and savings.
+- Collapsible lump-sum entries. Each row shows amount, description and age in a
+  one-line summary that updates as you type, and opens for editing on demand.
+  A row that is still missing its age or amount opens automatically.
+
+Fixed:
+
+- Removing a lump sum left the remaining rows carrying their original indices,
+  so a later row's validation errors could attach to the wrong entry. The list
+  is now re-rendered on removal, preserving which rows were open.
 
 Changed:
 

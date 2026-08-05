@@ -110,7 +110,7 @@ validation rules are untouched, so the automated suite above is unchanged and
 still passes at 24 of 24.
 
 The interface changes were driven in headless Chromium against the local file.
-Twenty-seven checks passed with no console or page errors:
+Forty-two checks passed with no console or page errors:
 
 - Baseline render: four summary cards, chart bars, and 33 annual table rows.
 - Summary cards carry a status class and the colour resolves; chart series
@@ -126,6 +126,13 @@ Twenty-seven checks passed with no console or page errors:
 - Separator resizes the input panel by keyboard and the width survives reload.
 - At a 390px viewport the separator is hidden and the page does not scroll
   horizontally.
+
+- Lump sums collapse to a one-line summary that tracks amount, description and
+  age as they are typed; a new row opens automatically; a collapsed row still
+  feeds the projection, confirmed in both today's and future pounds; a
+  collapsed row's validation error is listed in the summary and activating it
+  expands the editor and focuses the field; removing a row reindexes the
+  remainder so errors stay attached to the correct entry.
 
 Evidence: `output/playwright/uk-alpha-0.2.0-dark.png`,
 `uk-alpha-0.2.0-light.png` and `uk-alpha-0.2.0-mobile-390.png`.

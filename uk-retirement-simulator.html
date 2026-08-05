@@ -71,8 +71,16 @@
     button { cursor: pointer; }
     button:hover { border-color: var(--accent); }
     .actions { display: grid; grid-template-columns: 1fr 1fr; gap: .4rem; margin-top: .65rem; }
-    .lump-sum-row { display: grid; grid-template-columns: 1fr 1fr; gap: .4rem .55rem; margin: .55rem 0; padding: .55rem; border: 1px solid var(--line); border-radius: 7px; background: var(--panel-2); }
-    .lump-sum-row .remove-lump-sum { grid-column: 2; width: auto; justify-self: end; padding: .25rem .5rem; font-size: 10px; }
+    .lump-sum-row { margin: .55rem 0; padding: .45rem .5rem; border: 1px solid var(--line); border-radius: 7px; background: var(--panel-2); }
+    .lump-summary { display: grid; grid-template-columns: 26px minmax(50px, auto) minmax(36px, 1fr) minmax(48px, auto) auto; align-items: center; gap: .3rem; }
+    .lump-chevron { width: 26px; padding: 0; border-color: transparent; background: transparent; color: var(--muted); font-size: 16px; line-height: 1; transition: transform .15s ease; }
+    .lump-chevron[aria-expanded="true"] { transform: rotate(90deg); }
+    .lump-summary-amount { font-variant-numeric: tabular-nums; font-weight: 700; }
+    .lump-summary-reason { overflow: hidden; color: var(--muted); text-overflow: ellipsis; white-space: nowrap; }
+    .lump-summary-date { color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .lump-summary .remove-lump-sum { width: auto; padding: .2rem .45rem; font-size: 10px; }
+    .lump-editor { padding: .5rem 0 .1rem; }
+    .lump-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .4rem .55rem; }
     #add-lump-sum { margin-top: .35rem; }
     .error { color: var(--bad); font-size: 10px; min-height: 1.05em; }
     .notice { margin: .6rem 0 0; color: var(--accent-2); font-size: 11px; }
@@ -126,7 +134,7 @@
     .chart-tooltip { position: absolute; z-index: 2; max-width: 240px; padding: .45rem .55rem; border: 1px solid var(--accent); border-radius: 6px; background: var(--tooltip-bg); color: var(--text); box-shadow: 0 5px 16px var(--shadow); font-size: 11px; line-height: 1.35; white-space: pre-line; pointer-events: none; }
     .chart-hover-target { cursor: crosshair; }
     .chart-hover-target:focus-visible { outline: 2px solid var(--warn); outline-offset: 1px; }
-    @media (max-width: 600px) { svg { height: 310px; } .chart-intro { line-height: 1.35; } .chart-toolbar { justify-content: stretch; } .display-control { width: 100%; justify-content: space-between; } .lump-sum-row { grid-template-columns: 1fr; } .lump-sum-row .remove-lump-sum { grid-column: 1; justify-self: start; } }
+    @media (max-width: 600px) { svg { height: 310px; } .chart-intro { line-height: 1.35; } .chart-toolbar { justify-content: stretch; } .display-control { width: 100%; justify-content: space-between; } .lump-grid { grid-template-columns: 1fr; } }
     .muted { color: var(--muted); }
     .disclosure { border-color: var(--warn); background: var(--disclosure-bg); color: var(--text); }
     .disclosure h2 { margin: 0 0 .55rem; color: var(--warn); font-size: 12px; }
@@ -662,14 +670,54 @@
           const source = event.source || 'privatePension';
           const label = event.label ?? '';
           const field = (name) => `lumpSumWithdrawals[${index}].${name}`;
+          // An entry that is still missing its age or amount opens on render, so a
+          // newly added row is immediately editable rather than a blank summary.
+          const complete = String(age).trim() !== '' && String(amount).trim() !== '';
+          const expanded = event.expanded ?? !complete;
+          const described = label.trim() || 'Lump sum';
+          const editorId = `lump-editor-${index}`;
           return `<div class="lump-sum-row" data-lump-index="${index}">
-            <label>Age (oldest person) <input type="number" min="0" step="1" data-lump-field="age" value="${escapeHtml(age)}" aria-invalid="false" aria-describedby="${field('age')}-error"><span class="error" id="${field('age')}-error" data-error-for="${field('age')}"></span></label>
-            <label>Amount (£) <input type="number" min="0" step="100" data-lump-field="amount" value="${escapeHtml(amount)}" aria-invalid="false" aria-describedby="${field('amount')}-error"><span class="error" id="${field('amount')}-error" data-error-for="${field('amount')}"></span></label>
-            <label>Source <select data-lump-field="source" aria-invalid="false" aria-describedby="${field('source')}-error"><option value="privatePension" ${source === 'privatePension' ? 'selected' : ''}>Private pension</option><option value="savings" ${source === 'savings' ? 'selected' : ''}>Savings</option><option value="cash" ${source === 'cash' ? 'selected' : ''}>Cash</option></select><span class="error" id="${field('source')}-error" data-error-for="${field('source')}"></span></label>
-            <label>Description (optional) <input type="text" data-lump-field="label" value="${escapeHtml(label)}" aria-invalid="false" aria-describedby="${field('label')}-error"><span class="error" id="${field('label')}-error" data-error-for="${field('label')}"></span></label>
-            <button type="button" class="remove-lump-sum" data-remove-lump-sum>Remove</button>
+            <div class="lump-summary">
+              <button type="button" class="lump-chevron" data-lump-toggle aria-expanded="${expanded}" aria-controls="${editorId}" aria-label="${expanded ? 'Collapse' : 'Edit'} ${escapeHtml(described)}">›</button>
+              <span class="lump-summary-amount">${amount === '' ? '—' : number(Number(amount))}</span>
+              <span class="lump-summary-reason" title="${escapeHtml(described)}">${escapeHtml(described)}</span>
+              <span class="lump-summary-date">${age === '' ? '' : `Age ${escapeHtml(age)}`}</span>
+              <button type="button" class="remove-lump-sum" data-remove-lump-sum aria-label="Remove ${escapeHtml(described)}">Remove</button>
+            </div>
+            <div class="lump-editor" id="${editorId}"${expanded ? '' : ' hidden'}>
+              <div class="lump-grid">
+                <label>Age (oldest person) <input type="number" min="0" step="1" data-lump-field="age" value="${escapeHtml(age)}" aria-invalid="false" aria-describedby="${field('age')}-error"><span class="error" id="${field('age')}-error" data-error-for="${field('age')}"></span></label>
+                <label>Amount (£) <input type="number" min="0" step="100" data-lump-field="amount" value="${escapeHtml(amount)}" aria-invalid="false" aria-describedby="${field('amount')}-error"><span class="error" id="${field('amount')}-error" data-error-for="${field('amount')}"></span></label>
+                <label>Source <select data-lump-field="source" aria-invalid="false" aria-describedby="${field('source')}-error"><option value="privatePension" ${source === 'privatePension' ? 'selected' : ''}>Private pension</option><option value="savings" ${source === 'savings' ? 'selected' : ''}>Savings</option><option value="cash" ${source === 'cash' ? 'selected' : ''}>Cash</option></select><span class="error" id="${field('source')}-error" data-error-for="${field('source')}"></span></label>
+                <label>Description (optional) <input type="text" data-lump-field="label" value="${escapeHtml(label)}" aria-invalid="false" aria-describedby="${field('label')}-error"><span class="error" id="${field('label')}-error" data-error-for="${field('label')}"></span></label>
+              </div>
+            </div>
           </div>`;
         }).join('');
+      };
+      // Current rows straight from the DOM, carrying open/closed state so a
+      // re-render does not collapse what the user had open.
+      const readLumpRows = () => [...form.querySelectorAll('.lump-sum-row')].map((row) => ({
+        ...Object.fromEntries(['age', 'amount', 'source', 'label'].map((name) => [name, row.querySelector(`[data-lump-field="${name}"]`)?.value ?? ''])),
+        expanded: row.querySelector('[data-lump-toggle]')?.getAttribute('aria-expanded') === 'true'
+      }));
+      // The collapsed summary is updated in place rather than by re-rendering the
+      // list, which would destroy the field the user is typing in.
+      const refreshLumpSummary = (row) => {
+        if (!row) return;
+        const value = (name) => (row.querySelector(`[data-lump-field="${name}"]`)?.value ?? '').trim();
+        const amount = value('amount');
+        const age = value('age');
+        const described = value('label') || 'Lump sum';
+        row.querySelector('.lump-summary-amount').textContent = amount === '' ? '—' : number(Number(amount));
+        const reason = row.querySelector('.lump-summary-reason');
+        reason.textContent = described;
+        reason.title = described;
+        row.querySelector('.lump-summary-date').textContent = age === '' ? '' : `Age ${age}`;
+        const toggle = row.querySelector('[data-lump-toggle]');
+        const remove = row.querySelector('[data-remove-lump-sum]');
+        toggle.setAttribute('aria-label', `${toggle.getAttribute('aria-expanded') === 'true' ? 'Collapse' : 'Edit'} ${described}`);
+        remove.setAttribute('aria-label', `Remove ${described}`);
       };
       const readForm = () => {
         const scenario = clone(lastValidScenario);
@@ -722,8 +770,16 @@
             ? document.querySelector(`.lump-sum-row[data-lump-index="${lump[1]}"] [data-lump-field="${lump[2]}"]`)
             : form.querySelector(`[data-field="${field}"]`);
         if (!input) return;
-        // Open the containing panel first, or focus() lands on a hidden element.
+        // Open the containing panel and, for a lump sum, its collapsed editor —
+        // focus() on a hidden element does nothing.
         input.closest('details')?.setAttribute('open', '');
+        const editor = input.closest('.lump-editor');
+        if (editor?.hidden) {
+          editor.hidden = false;
+          const toggle = editor.closest('.lump-sum-row').querySelector('[data-lump-toggle]');
+          toggle.setAttribute('aria-expanded', 'true');
+          refreshLumpSummary(editor.closest('.lump-sum-row'));
+        }
         input.focus();
         input.scrollIntoView({ block: 'center' });
       };
@@ -1017,6 +1073,15 @@
       });
       modal.addEventListener('click', (event) => { if (event.target === modal && closeModal) closeModal(); });
       form.addEventListener('input', recalculate); form.addEventListener('change', recalculate);
+      form.addEventListener('input', (event) => { if (event.target.matches('[data-lump-field]')) refreshLumpSummary(event.target.closest('.lump-sum-row')); });
+      form.addEventListener('click', (event) => {
+        const toggle = event.target.closest('[data-lump-toggle]');
+        if (!toggle) return;
+        const expanded = toggle.getAttribute('aria-expanded') === 'true';
+        toggle.setAttribute('aria-expanded', String(!expanded));
+        document.querySelector(`#${toggle.getAttribute('aria-controls')}`).hidden = expanded;
+        refreshLumpSummary(toggle.closest('.lump-sum-row'));
+      });
       document.querySelector('#display-mode').addEventListener('change', (event) => { displayMode = event.target.value; renderResults(); });
       const setChartMode = (mode) => {
         chartMode = mode;
@@ -1027,13 +1092,15 @@
       document.querySelector('#chart-income').addEventListener('click', () => setChartMode('income'));
       document.querySelector('#chart-balance').addEventListener('click', () => setChartMode('balance'));
       document.querySelector('#add-lump-sum').addEventListener('click', () => {
-        const current = [...form.querySelectorAll('.lump-sum-row')].map((row) => Object.fromEntries(['age', 'amount', 'source', 'label'].map((name) => [name, row.querySelector(`[data-lump-field="${name}"]`)?.value ?? ''])));
-        renderLumpSums([...current, { age: '', amount: '', source: 'privatePension', label: '' }]);
+        renderLumpSums([...readLumpRows(), { age: '', amount: '', source: 'privatePension', label: '' }]);
         recalculate();
       });
       form.addEventListener('click', (event) => {
         if (!event.target.closest('[data-remove-lump-sum]')) return;
         event.target.closest('.lump-sum-row').remove();
+        // Re-render so data-lump-index and the error ids follow the new positions;
+        // without it a later row's errors would land on the wrong entry.
+        renderLumpSums(readLumpRows());
         recalculate();
       });
       document.querySelector('#save-scenario-header').addEventListener('click', () => {
