@@ -126,7 +126,6 @@ Forty-two checks passed with no console or page errors:
 - Separator resizes the input panel by keyboard and the width survives reload.
 - At a 390px viewport the separator is hidden and the page does not scroll
   horizontally.
-
 - Lump sums collapse to a one-line summary that tracks amount, description and
   age as they are typed; a new row opens automatically; a collapsed row still
   feeds the projection, confirmed in both today's and future pounds; a
@@ -135,10 +134,18 @@ Forty-two checks passed with no console or page errors:
   remainder so errors stay attached to the correct entry.
 
 Evidence: `output/playwright/uk-alpha-0.2.0-dark.png`,
-`uk-alpha-0.2.0-light.png` and `uk-alpha-0.2.0-mobile-390.png`.
+`uk-alpha-0.2.0-light.png`, `uk-alpha-0.2.0-mobile-390.png` and
+`uk-alpha-0.2.0-lump-sums.png`.
 
-One defect was found and fixed during this pass. Blurring a field fires
-`change`, which recalculates and rebuilt the validation summary; that destroyed
-the entry the user was clicking, so activating it did nothing. The summary is
-now rebuilt only when the error set actually changes, and its click handling is
-delegated so it survives a rebuild.
+Two defects were found and fixed during this pass, neither reachable by the
+static test suite:
+
+1. Blurring a field fires `change`, which recalculated and rebuilt the
+   validation summary; that destroyed the entry the user was clicking, so
+   activating it did nothing. The summary is now rebuilt only when the error set
+   actually changes, and its click handling is delegated so it survives a
+   rebuild.
+2. Removing a lump sum detached the node without re-rendering, leaving later
+   rows with their original `data-lump-index` and error ids, so their validation
+   errors could attach to the wrong entry. Removal now re-renders the list and
+   preserves which rows were open.
