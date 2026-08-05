@@ -4,6 +4,32 @@ Version numbering is independent of the release label. The project is Alpha and
 stays Alpha until that is changed deliberately; reaching a particular version
 number does not imply Beta.
 
+## Alpha 0.5.0 - 2026-08-05
+
+Bundles two small, related schema additions in one version bump, per #9 and
+#10.
+
+Added:
+
+- A scenario name field at the top of the Scenario panel (#10). It is saved
+  and exported with the scenario and is used to derive the export filename
+  (e.g. `retire-at-60.json` instead of the fixed `uk-retirement-scenario.json`
+  every export previously used).
+- An enable/disable checkbox on each lump-sum withdrawal (#9), matching AU's
+  treatment. A disabled withdrawal stays in the scenario and dims in the
+  list, but the projection skips it entirely for that year rather than
+  requiring it to be deleted and re-entered to compare a scenario with and
+  without it.
+
+Changed:
+
+- Schema version bumped to 2. Older saved and exported scenarios still load:
+  migration backfills a blank scenario name and marks any existing lump sum
+  as enabled. Fixed a latent migration gap while making this change: an
+  older scenario carrying an explicit prior `schemaVersion` (not just a
+  missing one) is now unconditionally re-stamped to the current version
+  rather than only being upgraded when the field was absent.
+
 ## Alpha 0.4.0 - 2026-08-05
 
 Aligns the annual table with the Australian simulator's column names and

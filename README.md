@@ -2,7 +2,7 @@
 
 An early-stage, transparent retirement-income modelling tool for approaching-retirement UK couples.
 
-**Release status: Alpha 0.4.0.** The simulator is an estimate-only work in
+**Release status: Alpha 0.5.0.** The simulator is an estimate-only work in
 progress, not financial, tax, legal or pension advice.
 
 The version shown in the page header matches `CHANGELOG.md`. Quote it when
@@ -54,10 +54,14 @@ divider between the inputs and the results to resize, or focus it and use the
 left and right arrow keys.
 
 The starter scenario is fictional and illustrative, not statistically typical.
-All assumptions are visible and editable in the page. Use **Save locally** and
-**Load locally** to store a scenario in this browser on this device, or use
-**Export JSON** and **Import JSON** to move a scenario as a human-readable JSON
-file. Imported files must match the MVP's two-person GBP scenario shape.
+All assumptions are visible and editable in the page. Give the scenario a name
+at the top of the Scenario panel; it is saved with the scenario and used as
+the filename when you export. Use **Save locally** and **Load locally** to
+store a scenario in this browser on this device, or use **Export JSON** and
+**Import JSON** to move a scenario as a human-readable JSON file. Imported
+files must match the MVP's two-person GBP scenario shape. Each lump-sum
+withdrawal can be disabled without deleting it, to compare a scenario with and
+without it.
 
 Results are estimate-only outputs from the entered assumptions. This is not
 financial, tax, legal or pension advice, and it does not model UK tax, National

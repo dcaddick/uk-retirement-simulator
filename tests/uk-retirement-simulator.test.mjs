@@ -59,11 +59,12 @@ const fixture = (update) => {
 };
 
 test('sample scenario is a valid two-person GBP scenario', () => {
-  assert.equal(SCHEMA_VERSION, 1);
+  assert.equal(SCHEMA_VERSION, 2);
   const scenario = sampleScenario();
   assert.deepEqual(scenario, {
-    schemaVersion: 1,
+    schemaVersion: 2,
     currency: 'GBP',
+    scenarioName: 'Sample household',
     startYear: 2026,
     household: {
       essentialAnnual: 30000,
@@ -167,10 +168,59 @@ test('migration creates a current-version scenario without mutating raw input', 
   delete raw.schemaVersion;
   delete raw.currency;
   const migrated = migrateScenario(raw);
-  assert.equal(migrated.schemaVersion, 1);
+  assert.equal(migrated.schemaVersion, 2);
   assert.equal(migrated.currency, 'GBP');
   assert.deepEqual(raw.schemaVersion, undefined);
   assert.deepEqual(validateScenario(migrated), { valid: true, errors: [] });
+});
+
+test('migration re-stamps an older explicit schemaVersion to the current one', () => {
+  const raw = { ...sampleScenario(), schemaVersion: 1 };
+  const migrated = migrateScenario(raw);
+  assert.equal(migrated.schemaVersion, 2);
+  assert.deepEqual(validateScenario(migrated), { valid: true, errors: [] });
+});
+
+test('migration defaults a missing scenario name to an empty string, and validation requires text', () => {
+  const raw = sampleScenario();
+  delete raw.scenarioName;
+  const migrated = migrateScenario(raw);
+  assert.equal(migrated.scenarioName, '');
+  assert.deepEqual(validateScenario(migrated), { valid: true, errors: [] });
+
+  const invalid = sampleScenario();
+  invalid.scenarioName = 42;
+  const result = validateScenario(invalid);
+  assert.equal(result.valid, false);
+  assert.ok(result.errors.some((error) => error.field === 'scenarioName'));
+});
+
+test('a lump sum missing the enabled flag migrates to enabled, and a disabled lump sum is excluded from the projection', () => {
+  const raw = sampleScenario();
+  raw.lumpSumWithdrawals = [{ age: 60, amount: 5000, source: 'cash', label: 'Legacy entry' }];
+  const migrated = migrateScenario(raw);
+  assert.equal(migrated.lumpSumWithdrawals[0].enabled, true);
+
+  const scenario = fixture((value) => {
+    value.startYear = 2030;
+    value.household.endAge = 60;
+    value.household.essentialAnnual = 0;
+    value.household.preferredAnnual = 0;
+    value.people.forEach((person) => {
+      person.age = 60;
+      person.retirementAge = 60;
+      person.salary = 0;
+      person.annualPensionContribution = 0;
+      person.privatePension = { pot: 0, growthPct: 0 };
+      person.statePension = { startAge: 70, annualAmount: 0 };
+    });
+    value.cash = { amount: 10000, interestPct: 0 };
+    value.lumpSumWithdrawals = [{ age: 60, amount: 5000, source: 'cash', label: 'Disabled entry', enabled: false }];
+  });
+  const [row] = projectScenario(scenario);
+  assert.equal(row.income.lumpSum, 0);
+  assert.equal(row.balances.cash, 10000);
+  assert.deepEqual(row.lumpSumWithdrawals, []);
 });
 
 test('projects ages, salary, contributions and State Pension from their configured cutoffs', () => {

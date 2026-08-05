@@ -72,13 +72,16 @@
     button:hover { border-color: var(--accent); }
     .actions { display: grid; grid-template-columns: 1fr 1fr; gap: .4rem; margin-top: .65rem; }
     .lump-sum-row { margin: .55rem 0; padding: .45rem .5rem; border: 1px solid var(--line); border-radius: 7px; background: var(--panel-2); }
-    .lump-summary { display: grid; grid-template-columns: 26px minmax(50px, auto) minmax(36px, 1fr) minmax(48px, auto) auto; align-items: center; gap: .3rem; }
+    .lump-summary { display: grid; grid-template-columns: 26px minmax(50px, auto) minmax(36px, 1fr) minmax(48px, auto) 26px auto; align-items: center; gap: .3rem; }
     .lump-chevron { width: 26px; padding: 0; border-color: transparent; background: transparent; color: var(--muted); font-size: 16px; line-height: 1; transition: transform .15s ease; }
     .lump-chevron[aria-expanded="true"] { transform: rotate(90deg); }
     .lump-summary-amount { font-variant-numeric: tabular-nums; font-weight: 700; }
     .lump-summary-reason { overflow: hidden; color: var(--muted); text-overflow: ellipsis; white-space: nowrap; }
     .lump-summary-date { color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .lump-summary-enabled { display: grid; place-items: center; margin: 0; width: 26px; }
     .lump-summary .remove-lump-sum { width: auto; padding: .2rem .45rem; font-size: 10px; }
+    /* Disabled entries stay visible but read as excluded, matching the AU treatment. */
+    .lump-sum-row.disabled .lump-summary-amount, .lump-sum-row.disabled .lump-summary-reason, .lump-sum-row.disabled .lump-summary-date { opacity: .58; }
     .lump-editor { padding: .5rem 0 .1rem; }
     .lump-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .4rem .55rem; }
     #add-lump-sum { margin-top: .35rem; }
@@ -182,7 +185,7 @@
   <div class="top-notice">Local, reproducible UK retirement planning. Estimate only; not financial, tax or pension advice.</div>
   <header>
     <div class="header-row">
-      <div><h1 id="page-title">UK Retirement Simulator <span class="muted">Alpha 0.4.0</span></h1><p>A transparent two-person household projection. Working estimate, not financial advice.</p></div>
+      <div><h1 id="page-title">UK Retirement Simulator <span class="muted">Alpha 0.5.0</span></h1><p>A transparent two-person household projection. Working estimate, not financial advice.</p></div>
       <nav class="header-actions" aria-label="Scenario actions">
         <button type="button" id="new-scenario-header">New</button>
         <button type="button" id="save-scenario-header">Save locally</button>
@@ -204,6 +207,7 @@
         </div>
         <details class="panel group" open><summary><h2>Scenario</h2></summary>
         <p class="panel-hint">The projection runs from the start year until the oldest person reaches the end age.</p>
+        <label>Scenario name <input type="text" data-field="scenarioName" value="Sample household"><span class="error" data-error-for="scenarioName"></span></label>
         <div class="form-grid">
           <label>Projection start year <input type="number" step="1" data-field="startYear" value="2026" required><span class="error" data-error-for="startYear"></span></label>
           <label>Projection end age <input type="number" step="1" data-field="household.endAge" value="90" required><span class="error" data-error-for="household.endAge"></span></label>
@@ -320,13 +324,14 @@
   <script>
     /* ENGINE_START */
     (() => {
-      const SCHEMA_VERSION = 1;
+      const SCHEMA_VERSION = 2;
       const PRIORITIES = ['privatePension', 'savings', 'cash'];
       const LUMP_SUM_SOURCES = ['privatePension', 'savings', 'cash'];
 
       const sampleScenario = () => ({
         schemaVersion: SCHEMA_VERSION,
         currency: 'GBP',
+        scenarioName: 'Sample household',
         startYear: 2026,
         household: {
           essentialAnnual: 30000,
@@ -367,8 +372,9 @@
         };
 
         if (!scenario || typeof scenario !== 'object') return { valid: false, errors: [{ field: 'scenario', message: 'must be an object' }] };
-        if (scenario.schemaVersion !== SCHEMA_VERSION) error('schemaVersion', 'must be 1');
+        if (scenario.schemaVersion !== SCHEMA_VERSION) error('schemaVersion', `must be ${SCHEMA_VERSION}`);
         if (scenario.currency !== 'GBP') error('currency', 'must be GBP');
+        if (typeof scenario.scenarioName !== 'string') error('scenarioName', 'must be text');
         if (!Number.isInteger(scenario.startYear)) error('startYear', 'must be an integer');
 
         const household = scenario.household;
@@ -426,6 +432,7 @@
             nonNegative(withdrawal.amount, field('amount'));
             if (!LUMP_SUM_SOURCES.includes(withdrawal.source)) error(field('source'), 'must be privatePension, savings or cash');
             if (withdrawal.label !== undefined && typeof withdrawal.label !== 'string') error(field('label'), 'must be text');
+            if (withdrawal.enabled !== undefined && typeof withdrawal.enabled !== 'boolean') error(field('enabled'), 'must be true or false');
             if (anchorAge !== null && Number.isInteger(withdrawal.age) && withdrawal.age < anchorAge) error(field('age'), `must be at least ${anchorAge}`);
             if (household && Number.isInteger(withdrawal.age) && Number.isInteger(household.endAge) && withdrawal.age > household.endAge) error(field('age'), `must be no greater than ${household.endAge}`);
           });
@@ -435,10 +442,18 @@
 
       const migrateScenario = (raw) => {
         const scenario = JSON.parse(JSON.stringify(raw));
-        if (scenario.schemaVersion === undefined) scenario.schemaVersion = SCHEMA_VERSION;
         if (scenario.currency === undefined) scenario.currency = 'GBP';
+        if (scenario.scenarioName === undefined) scenario.scenarioName = '';
         if (scenario.household && scenario.household.drawdownPriority === undefined) scenario.household.drawdownPriority = [...PRIORITIES];
         if (scenario.lumpSumWithdrawals === undefined) scenario.lumpSumWithdrawals = [];
+        if (Array.isArray(scenario.lumpSumWithdrawals)) {
+          scenario.lumpSumWithdrawals = scenario.lumpSumWithdrawals.map((item) => (
+            item && typeof item === 'object' && !Array.isArray(item) && item.enabled === undefined
+          ) ? { ...item, enabled: true } : item);
+        }
+        // Stamped last and unconditionally: an older scenario may already carry an
+        // explicit prior schemaVersion rather than simply be missing the field.
+        scenario.schemaVersion = SCHEMA_VERSION;
         return scenario;
       };
 
@@ -497,7 +512,7 @@
 
           const lumpSumDraws = { privatePension: people.map(() => 0), savings: 0, cash: 0, total: 0 };
           const lumpSumWithdrawals = (scenario.lumpSumWithdrawals || [])
-            .filter((withdrawal) => withdrawal.age === anchorAge + yearIndex)
+            .filter((withdrawal) => withdrawal.age === anchorAge + yearIndex && withdrawal.enabled !== false)
             .map((withdrawal) => {
               let remaining = withdrawal.amount;
               if (withdrawal.source === 'privatePension') {
@@ -672,6 +687,7 @@
           const amount = event.amount ?? '';
           const source = event.source || 'privatePension';
           const label = event.label ?? '';
+          const enabled = event.enabled !== false;
           const field = (name) => `lumpSumWithdrawals[${index}].${name}`;
           // An entry that is still missing its age or amount opens on render, so a
           // newly added row is immediately editable rather than a blank summary.
@@ -679,12 +695,13 @@
           const expanded = event.expanded ?? !complete;
           const described = label.trim() || 'Lump sum';
           const editorId = `lump-editor-${index}`;
-          return `<div class="lump-sum-row" data-lump-index="${index}">
+          return `<div class="lump-sum-row${enabled ? '' : ' disabled'}" data-lump-index="${index}">
             <div class="lump-summary">
               <button type="button" class="lump-chevron" data-lump-toggle aria-expanded="${expanded}" aria-controls="${editorId}" aria-label="${expanded ? 'Collapse' : 'Edit'} ${escapeHtml(described)}">›</button>
               <span class="lump-summary-amount">${amount === '' ? '-' : number(Number(amount))}</span>
               <span class="lump-summary-reason" title="${escapeHtml(described)}">${escapeHtml(described)}</span>
               <span class="lump-summary-date">${age === '' ? '' : `Age ${escapeHtml(age)}`}</span>
+              <label class="lump-summary-enabled" title="Include ${escapeHtml(described)} in the projection"><input type="checkbox" data-lump-field="enabled" aria-label="Include ${escapeHtml(described)} in the projection"${enabled ? ' checked' : ''}></label>
               <button type="button" class="remove-lump-sum" data-remove-lump-sum aria-label="Remove ${escapeHtml(described)}">Remove</button>
             </div>
             <div class="lump-editor" id="${editorId}"${expanded ? '' : ' hidden'}>
@@ -702,6 +719,7 @@
       // re-render does not collapse what the user had open.
       const readLumpRows = () => [...form.querySelectorAll('.lump-sum-row')].map((row) => ({
         ...Object.fromEntries(['age', 'amount', 'source', 'label'].map((name) => [name, row.querySelector(`[data-lump-field="${name}"]`)?.value ?? ''])),
+        enabled: row.querySelector('[data-lump-field="enabled"]')?.checked ?? true,
         expanded: row.querySelector('[data-lump-toggle]')?.getAttribute('aria-expanded') === 'true'
       }));
       // The collapsed summary is updated in place rather than by re-rendering the
@@ -719,8 +737,11 @@
         row.querySelector('.lump-summary-date').textContent = age === '' ? '' : `Age ${age}`;
         const toggle = row.querySelector('[data-lump-toggle]');
         const remove = row.querySelector('[data-remove-lump-sum]');
+        const enabledLabel = row.querySelector('.lump-summary-enabled');
         toggle.setAttribute('aria-label', `${toggle.getAttribute('aria-expanded') === 'true' ? 'Collapse' : 'Edit'} ${described}`);
         remove.setAttribute('aria-label', `Remove ${described}`);
+        enabledLabel.title = `Include ${described} in the projection`;
+        enabledLabel.querySelector('input').setAttribute('aria-label', `Include ${described} in the projection`);
       };
       const readForm = () => {
         const scenario = clone(lastValidScenario);
@@ -732,7 +753,8 @@
         scenario.lumpSumWithdrawals = [...form.querySelectorAll('.lump-sum-row')].map((row) => {
           const value = (name) => row.querySelector(`[data-lump-field="${name}"]`)?.value ?? '';
           const numeric = (name) => value(name).trim() === '' ? NaN : Number(value(name));
-          return { age: numeric('age'), amount: numeric('amount'), source: value('source'), label: value('label').trim() };
+          const enabled = row.querySelector('[data-lump-field="enabled"]')?.checked ?? true;
+          return { age: numeric('age'), amount: numeric('amount'), source: value('source'), label: value('label').trim(), enabled };
         });
         return scenario;
       };
@@ -1011,6 +1033,7 @@
         lastValidScenario = candidate; lastProjection = projectScenario(candidate); setStatus('Projection updated.'); renderResults();
       };
       const download = (name, content) => { const link = document.createElement('a'); link.href = URL.createObjectURL(new Blob([content], { type: 'application/json' })); link.download = name; link.click(); URL.revokeObjectURL(link.href); };
+      const slugify = (value) => String(value).toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'uk-retirement-scenario';
 
       // Storage is unavailable in some privacy modes; a lost preference must never
       // take the whole page down, so every access is guarded.
@@ -1104,6 +1127,10 @@
       modal.addEventListener('click', (event) => { if (event.target === modal && closeModal) closeModal(); });
       form.addEventListener('input', recalculate); form.addEventListener('change', recalculate);
       form.addEventListener('input', (event) => { if (event.target.matches('[data-lump-field]')) refreshLumpSummary(event.target.closest('.lump-sum-row')); });
+      form.addEventListener('change', (event) => {
+        if (!event.target.matches('[data-lump-field="enabled"]')) return;
+        event.target.closest('.lump-sum-row').classList.toggle('disabled', !event.target.checked);
+      });
       form.addEventListener('click', (event) => {
         const toggle = event.target.closest('[data-lump-toggle]');
         if (!toggle) return;
@@ -1122,7 +1149,7 @@
       document.querySelector('#chart-income').addEventListener('click', () => setChartMode('income'));
       document.querySelector('#chart-balance').addEventListener('click', () => setChartMode('balance'));
       document.querySelector('#add-lump-sum').addEventListener('click', () => {
-        renderLumpSums([...readLumpRows(), { age: '', amount: '', source: 'privatePension', label: '' }]);
+        renderLumpSums([...readLumpRows(), { age: '', amount: '', source: 'privatePension', label: '', enabled: true }]);
         recalculate();
       });
       form.addEventListener('click', (event) => {
@@ -1151,7 +1178,7 @@
         if (!await confirmAction('Start a new scenario? This discards the values currently in the form.')) { setStatus('New scenario cancelled.'); return; }
         fillForm(sampleScenario()); showErrors([]); lastValidScenario = clone(sampleScenario()); lastProjection = projectScenario(lastValidScenario); setStatus('New fictional starter scenario loaded.'); renderResults();
       });
-      document.querySelector('#export-scenario-header').addEventListener('click', () => { download('uk-retirement-scenario.json', JSON.stringify(lastValidScenario, null, 2)); setStatus('Scenario exported as JSON.'); });
+      document.querySelector('#export-scenario-header').addEventListener('click', () => { download(`${slugify(lastValidScenario.scenarioName)}.json`, JSON.stringify(lastValidScenario, null, 2)); setStatus('Scenario exported as JSON.'); });
       document.querySelector('#import-scenario-header').addEventListener('click', () => document.querySelector('#import-file').click());
       document.querySelector('#import-file').addEventListener('change', (event) => {
         const [file] = event.target.files; if (!file) return;
