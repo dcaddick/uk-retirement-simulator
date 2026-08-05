@@ -69,7 +69,7 @@ test('sample scenario is a valid two-person GBP scenario', () => {
     household: {
       essentialAnnual: 30000,
       preferredAnnual: 36000,
-      inflationPct: 2.5,
+      inflationPct: 2.0,
       endAge: 90,
       drawdownPriority: ['privatePension', 'savings', 'cash']
     },
@@ -227,6 +227,7 @@ test('projects ages, salary, contributions and State Pension from their configur
   const scenario = sampleScenario();
   scenario.startYear = 2026;
   scenario.household.endAge = 68;
+  scenario.household.inflationPct = 0;
   scenario.people[0].age = 59;
   scenario.people[0].retirementAge = 60;
   scenario.people[0].statePension.startAge = 61;
@@ -294,6 +295,7 @@ test('starts State Pension independently for each person', () => {
   const scenario = fixture((value) => {
     value.startYear = 2030;
     value.household.endAge = 69;
+    value.household.inflationPct = 0;
     value.people[0].age = 66;
     value.people[0].retirementAge = 60;
     value.people[0].statePension = { startAge: 67, annualAmount: 8400 };
@@ -310,6 +312,43 @@ test('starts State Pension independently for each person', () => {
   assert.deepEqual(rows[1].statePension, [8400, 0]);
   assert.deepEqual(rows[2].statePension, [8400, 0]);
   assert.deepEqual(rows[3].statePension, [8400, 9600]);
+});
+
+test('uprates State Pension with inflation from the projection start year, while salary stays flat', () => {
+  const scenario = fixture((value) => {
+    value.startYear = 2030;
+    value.household.endAge = 69;
+    value.household.inflationPct = 10;
+    value.household.essentialAnnual = 0;
+    value.household.preferredAnnual = 0;
+    value.people[0].age = 66;
+    value.people[0].retirementAge = 70;
+    value.people[0].salary = 1000;
+    value.people[0].annualPensionContribution = 0;
+    value.people[0].privatePension = { pot: 0, growthPct: 0 };
+    value.people[0].statePension = { startAge: 67, annualAmount: 100 };
+    value.people[1].age = 66;
+    value.people[1].retirementAge = 70;
+    value.people[1].salary = 0;
+    value.people[1].annualPensionContribution = 0;
+    value.people[1].privatePension = { pot: 0, growthPct: 0 };
+    value.people[1].statePension = { startAge: 67, annualAmount: 100 };
+  });
+
+  const rows = projectScenario(scenario);
+
+  // Salary is entered flat and never inflates, regardless of the configured rate.
+  assert.deepEqual(rows[0].salary, [1000, 0]);
+  assert.deepEqual(rows[1].salary, [1000, 0]);
+  assert.deepEqual(rows[3].salary, [1000, 0]);
+
+  // State Pension is entered in today's money and inflates like a spending
+  // target, compounding from the projection start year (yearIndex 0), not
+  // from the year each person starts claiming it.
+  assert.deepEqual(rows[0].statePension, [0, 0]);
+  assert.ok(Math.abs(rows[1].statePension[0] - 110) < 1e-9); // 100 * 1.10^1
+  assert.ok(Math.abs(rows[1].statePension[1] - 110) < 1e-9);
+  assert.ok(Math.abs(rows[3].statePension[0] - 133.1) < 1e-9); // 100 * 1.10^3
 });
 
 test('validates lump-sum withdrawal fields and keeps older scenarios migratable', () => {

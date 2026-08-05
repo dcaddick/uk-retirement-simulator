@@ -26,7 +26,10 @@ For each projection year, the simulator:
    allowing a balance to become negative.
 5. Adds the configured State Pension amount for each person whose age has
    reached their configured State Pension start age. These are user-entered
-   assumptions, not a live lookup of current policy or entitlement.
+   assumptions, not a live lookup of current policy or entitlement. The
+   amount is entered in today's money and is increased by the configured
+   inflation rate for each elapsed year since the projection start, the same
+   as spending targets in step 6; a person's entered salary is not inflated.
 6. Increases essential and preferred spending from the starting annual amounts
    by the configured inflation rate for each elapsed year.
 7. Treats household resources as cumulative. Salary and State Pension count
@@ -57,9 +60,12 @@ saved locally or exported as JSON.
   relevant opening balance (with private-pension contributions included before
   private-pension growth). They are deterministic rates, not forecasts or
   guaranteed returns.
-- **State Pension income:** a fixed annual amount entered for each person,
-  starting at that person's configured age. The model does not check National
-  Insurance records, eligibility or current government rates.
+- **State Pension income:** an annual amount entered for each person in
+  today's money, starting at that person's configured age. It inflates at the
+  configured rate from the projection start year, the same as spending
+  targets; the model does not check National Insurance records, eligibility
+  or current government rates, and does not model the actual UK State Pension
+  uprating rules (such as the triple lock) beyond this flat assumed rate.
 - **Drawdown:** the amount taken from the configured private-pension, savings
   and cash balances to fund the modelled spending. The user chooses the order;
   the model does not optimise it or model tax consequences.
@@ -75,9 +81,13 @@ saved locally or exported as JSON.
   does not count towards funding that year's regular household spending. Each
   withdrawal can be disabled without deleting it, to compare a scenario with
   and without it; a disabled withdrawal is skipped entirely by the projection.
-- **Inflation:** one fixed annual percentage increases both spending targets
-  from the first projection year. The “today’s money” display removes this
-  same assumed inflation and does not represent a separate economic forecast.
+- **Inflation:** one fixed annual percentage, defaulting to 2%, the Bank of
+  England's inflation target and a standard long-run planning assumption
+  rather than a live rate, a forecast, or a near-term-versus-long-run split.
+  It increases both spending targets and entered State Pension amounts from
+  the first projection year. Entered salary is not inflated. The “today’s
+  money” display removes this same assumed inflation and does not represent a
+  separate economic forecast.
 
 ## Deliberate exclusions and limits
 

@@ -193,7 +193,7 @@
   <div class="top-notice">Local, reproducible UK retirement planning. Estimate only; not financial, tax or pension advice.</div>
   <header>
     <div class="header-row">
-      <div><h1 id="page-title">UK Retirement Simulator <span class="muted">Alpha 0.7.1</span></h1><p>A transparent two-person household projection. Working estimate, not financial advice.</p></div>
+      <div><h1 id="page-title">UK Retirement Simulator <span class="muted">Alpha 0.8.0</span></h1><p>A transparent two-person household projection. Working estimate, not financial advice.</p></div>
       <nav class="header-actions" aria-label="Scenario actions">
         <button type="button" id="new-scenario-header">New</button>
         <button type="button" id="save-scenario-header">Save locally</button>
@@ -255,9 +255,9 @@
       </div></details>
 
       <details class="panel group"><summary><h2>Returns and inflation</h2></summary>
-        <p class="panel-hint">The inflation rate applied across the projection. Each person's private pension growth rate is set in their own People fields, and cash/savings interest rates are set in Cash and savings.</p>
+        <p class="panel-hint">Defaults to 2%, the Bank of England’s inflation target and a standard long-run planning assumption; this is a flat manual rate, not a live or forecast figure. Applied to essential and preferred spending and to State Pension, all entered in today’s money; salary is entered as a flat figure and is not inflated. Each person's private pension growth rate is set in their own People fields, and cash/savings interest rates are set in Cash and savings.</p>
         <div class="form-grid">
-        <label>Inflation (%) <input type="number" min="0" step="0.1" data-field="household.inflationPct" value="2.5"><span class="error" data-error-for="household.inflationPct"></span></label>
+        <label>Inflation (%) <input type="number" min="0" step="0.1" data-field="household.inflationPct" value="2.0"><span class="error" data-error-for="household.inflationPct"></span></label>
       </div></details>
 
       <details class="panel group pot"><summary><h2>Cash and savings</h2></summary>
@@ -318,7 +318,7 @@
             <div><h3>What the calculation assumes</h3><ul>
               <li>Salary and contributions run only before each person's retirement age.</li>
               <li>Contributions are added before fixed annual private-pension growth.</li>
-              <li>State Pension uses the visible amount and start age entered for each person.</li>
+              <li>State Pension uses the visible amount and start age entered for each person. The amount is entered in today's money and inflates at the configured rate from the projection start year, the same as spending targets; salary is entered as a flat figure and does not inflate.</li>
               <li>Dated lump-sum withdrawals are one-off spending: applied after growth and deducted from the selected source, but not counted as income towards regular spending drawdown.</li>
               <li>Household income is cumulative: State Pension counts first, then drawdown tops up the gap.</li>
             </ul></div>
@@ -351,7 +351,7 @@
         household: {
           essentialAnnual: 30000,
           preferredAnnual: 36000,
-          inflationPct: 2.5,
+          inflationPct: 2.0,
           endAge: 90,
           drawdownPriority: [...PRIORITIES]
         },
@@ -553,7 +553,12 @@
               return { label: withdrawal.label || 'Lump sum withdrawal', age: withdrawal.age, source: withdrawal.source, amount: withdrawal.amount, drawn, shortfall: remaining };
             });
           const lumpSumIncome = lumpSumDraws.total;
-          const statePension = people.map((person, index) => ages[index] >= person.statePension.startAge ? person.statePension.annualAmount : 0);
+          const inflationFactor = (1 + household.inflationPct / 100) ** yearIndex;
+          // Entered in today's money, like the spending targets below: State
+          // Pension inflates from the projection start year at the same rate.
+          // Salary is a user-entered figure that stops at retirement and is not
+          // inflated.
+          const statePension = people.map((person, index) => ages[index] >= person.statePension.startAge ? person.statePension.annualAmount * inflationFactor : 0);
           // Lump sums are one-off spending, not income: they reduce their source
           // balance above but must not displace the ordinary drawdown that funds
           // this year's household spending target.
@@ -563,7 +568,6 @@
             lumpSum: lumpSumIncome,
             total: sum(salary) + sum(statePension)
           };
-          const inflationFactor = (1 + household.inflationPct / 100) ** yearIndex;
           const preferred = household.preferredAnnual * inflationFactor;
           const essential = household.essentialAnnual * inflationFactor;
           const draws = {

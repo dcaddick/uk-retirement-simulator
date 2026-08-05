@@ -4,6 +4,39 @@ Version numbering is independent of the release label. The project is Alpha and
 stays Alpha until that is changed deliberately; reaching a particular version
 number does not imply Beta.
 
+## Alpha 0.8.0 - 2026-08-06
+
+Resolves #19. Two problems: the inflation assumption had no stated source,
+and it inflated spending but not entered incomes, so a projection got
+structurally more pessimistic every year for reasons unrelated to any
+modelled assumption about pension policy.
+
+Changed:
+
+- Inflation defaults to 2%, the Bank of England's inflation target, cited by
+  name in the Returns and inflation panel and in the methodology doc. No link
+  is added: the page's no-network-request guarantee, enforced by the test
+  suite, stays absolute. This is still a flat manual rate, not a live figure,
+  a forecast, or a near-term-versus-long-run split.
+- **State Pension now inflates with the configured rate**, entered and
+  treated in today's money the same way essential and preferred spending
+  already are, compounding from the projection start year regardless of when
+  a person starts claiming it. This is an engine change: results for any
+  scenario with an active State Pension will differ from earlier Alpha
+  releases, in the direction of less pessimistic long-run shortfalls, since
+  State Pension income now keeps pace with the same inflation spending is
+  measured against.
+- Salary is unchanged: it stays a flat entered figure and is not inflated,
+  since it is user-entered and stops at retirement in any case. Documented
+  explicitly in the Returns and inflation panel, the model assumptions
+  disclosure and the methodology doc, so the asymmetry (or lack of it, now)
+  is stated rather than left for a reader to infer from behaviour.
+
+The scenario schema and validation are unchanged. Sample-scenario defaults
+change (`inflationPct` 2.5 to 2.0), which shifts the fictional starter
+scenario's projected figures; this is a change to what ships as the
+illustrative default, not a fix to a wrong calculation.
+
 ## Alpha 0.7.1 - 2026-08-06
 
 Adds an adjustable divider between the chart and the table, per #11.
