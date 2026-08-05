@@ -17,7 +17,8 @@ The test file verifies the self-contained HTML, schema and validation, annual
 projection cutoffs, both retired and staggered retirement, staggered State
 Pension starts, zero private-pension pots, savings exhaustion, cash-only
 funding, preferred-versus-essential shortfall reporting, balance conservation,
-and today's-money conversion.
+today's-money conversion, lump-sum withdrawal funding, and the Income/Balance
+chart view and tooltip hooks.
 
 Expected result: all tests pass and `git diff --check` prints no findings.
 
@@ -49,7 +50,20 @@ Against the verified feature-branch head, including the browser fixes:
 - Responsive checks at `390x844` and `1440x1000` showed no horizontal
   overflow.
 - The chart SVG and 33-row annual table rendered together; the table caption
-  stated that it contains the exact chart values.
+  stated that it contains the exact chart values. The Income view rendered
+  stacked salary, State Pension and drawdown sources with essential and
+  preferred target lines; the Balance view rendered stacked private-pension,
+  savings and cash balances with the same age axis.
+- The chart's **Your income** and **Your balance** controls switched views,
+  the selected display mode updated both views, and the table exposed the
+  component balances used by the Balance view.
+- The right-aligned chart display control defaulted to **Today’s pounds
+  (2026)** and switched to **Future pounds**; the annual table and chart
+  changed together (for example, 2027 essential spending changed from
+  £30,000 to £30,750).
+- Adding a £15,000 savings withdrawal at age 60 rendered a dedicated lump-sum
+  income segment and deducted it from savings. Hovering that segment showed
+  the age, year, amount, description and source in the custom chart tooltip.
 - Final browser console: 0 errors and 0 warnings. No unexpected runtime
   network requests occurred; only static page/document requests were seen.
 

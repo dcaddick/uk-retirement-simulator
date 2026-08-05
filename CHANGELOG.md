@@ -1,5 +1,12 @@
 # Changelog
 
+## Alpha - 2026-08-05
+
+Added dated lump-sum withdrawals, Australian-style Income/Balance chart views,
+chart-adjacent Today's/Future pounds display control, and hover details for
+chart segments and spending targets. This remains an Alpha release pending
+definitive feedback from UK users; no Beta designation is implied yet.
+
 ## 0.1.0 - 2026-08-04
 
 Initial deterministic UK retirement simulator MVP for a fictional two-person

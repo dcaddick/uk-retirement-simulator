@@ -2,8 +2,15 @@
 
 An early-stage, transparent retirement-income modelling tool for approaching-retirement UK couples.
 
-The MVP models State Pension, simple private-pension drawdown, savings and cash
-in a deterministic annual projection. Read the [model methodology](docs/MODEL-METHODOLOGY.md)
+**Release status: Alpha.** The simulator is an estimate-only work in progress,
+not financial, tax, legal or pension advice.
+
+The project will remain Alpha while it gathers definitive feedback from UK
+users. A future Beta label will require that feedback and a separate review of
+the model’s assumptions and presentation.
+
+The MVP models State Pension, simple private-pension drawdown, dated lump-sum
+withdrawals, savings and cash in a deterministic annual projection. Read the [model methodology](docs/MODEL-METHODOLOGY.md)
 for the annual calculation sequence, assumptions and deliberate exclusions.
 
 ## Run locally

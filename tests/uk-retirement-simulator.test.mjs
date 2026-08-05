@@ -15,7 +15,7 @@ test('UK MVP markup exposes the focused interface without network dependencies',
     assert.ok(position > previous, `section ${section} is missing or out of order`);
     previous = position;
   }
-  for (const hook of ['scenario-form', 'summary', 'annual-chart', 'results-table', 'display-mode', 'save-scenario', 'load-scenario', 'export-scenario', 'import-scenario']) {
+  for (const hook of ['scenario-form', 'summary', 'annual-chart', 'chart-tooltip', 'results-table', 'display-mode', 'chart-income', 'chart-balance', 'chart-legend', 'lump-sum-list', 'add-lump-sum', 'save-scenario', 'load-scenario', 'export-scenario', 'import-scenario']) {
     assert.match(html, new RegExp(`(?:id|data-field)=["']${hook}`), `missing interface hook ${hook}`);
   }
   assert.match(html, /setupValidationAccessibility/);
@@ -23,6 +23,14 @@ test('UK MVP markup exposes the focused interface without network dependencies',
   assert.match(html, /setAttribute\('aria-invalid', 'true'\)/);
   assert.match(html, /setAttribute\('aria-describedby'/);
   assert.match(html, /Could not save locally:/);
+  assert.match(html, /role="tablist"/);
+  assert.match(html, /Stacked bars show the remaining private-pension, savings and cash balances/);
+  assert.match(html, /const setChartMode = \(mode\)/);
+  assert.ok(html.indexOf('id="annual-chart"') < html.indexOf('id="display-mode"'), 'display selector must sit beneath the chart');
+  assert.match(html, /Today’s pounds \(2026\)/);
+  assert.match(html, /Future pounds/);
+  assert.match(html, /data-chart-tooltip/);
+  assert.match(html, /showTooltip/);
   assert.match(html, /<link rel="icon" href="data:image\/svg\+xml,/i, 'the app must provide a local inline favicon');
   assert.doesNotMatch(html, /\b(fetch|XMLHttpRequest|WebSocket)\b|https?:\/\//, 'the MVP must not make network requests');
 });
@@ -79,7 +87,8 @@ test('sample scenario is a valid two-person GBP scenario', () => {
       }
     ],
     cash: { amount: 15000, interestPct: 0 },
-    savings: { amount: 50000, interestPct: 3 }
+    savings: { amount: 50000, interestPct: 3 },
+    lumpSumWithdrawals: []
   });
   assert.deepEqual(validateScenario(scenario), { valid: true, errors: [] });
 });
@@ -251,6 +260,49 @@ test('starts State Pension independently for each person', () => {
   assert.deepEqual(rows[1].statePension, [8400, 0]);
   assert.deepEqual(rows[2].statePension, [8400, 0]);
   assert.deepEqual(rows[3].statePension, [8400, 9600]);
+});
+
+test('validates lump-sum withdrawal fields and keeps older scenarios migratable', () => {
+  const scenario = sampleScenario();
+  delete scenario.lumpSumWithdrawals;
+  const migrated = migrateScenario(scenario);
+  assert.deepEqual(migrated.lumpSumWithdrawals, []);
+  migrated.lumpSumWithdrawals = [{ age: 57, amount: -1, source: 'unknown', label: 4 }];
+  const result = validateScenario(migrated);
+  assert.equal(result.valid, false);
+  assert.ok(result.errors.some((error) => error.field === 'lumpSumWithdrawals[0].age'));
+  assert.ok(result.errors.some((error) => error.field === 'lumpSumWithdrawals[0].amount'));
+  assert.ok(result.errors.some((error) => error.field === 'lumpSumWithdrawals[0].source'));
+  assert.ok(result.errors.some((error) => error.field === 'lumpSumWithdrawals[0].label'));
+});
+
+test('applies a lump-sum withdrawal as income and deducts it from its source', () => {
+  const scenario = fixture((value) => {
+    value.startYear = 2030;
+    value.household.endAge = 60;
+    value.household.essentialAnnual = 10000;
+    value.household.preferredAnnual = 10000;
+    value.people.forEach((person) => {
+      person.age = 60;
+      person.retirementAge = 60;
+      person.salary = 0;
+      person.annualPensionContribution = 0;
+      person.privatePension = { pot: 0, growthPct: 0 };
+      person.statePension = { startAge: 70, annualAmount: 0 };
+    });
+    value.savings = { amount: 10000, interestPct: 0 };
+    value.cash = { amount: 0, interestPct: 0 };
+    value.lumpSumWithdrawals = [{ age: 60, amount: 15000, source: 'savings', label: 'Home project' }];
+  });
+
+  const [row] = projectScenario(scenario);
+
+  assert.equal(row.income.lumpSum, 10000);
+  assert.equal(row.income.total, 10000);
+  assert.equal(row.draws.total, 0);
+  assert.equal(row.balances.savings, 0);
+  assert.deepEqual(row.lumpSumWithdrawals, [{ age: 60, amount: 15000, source: 'savings', label: 'Home project', drawn: 10000, shortfall: 5000 }]);
+  assert.equal(row.spending.preferredShortfall, 0);
 });
 
 test('funds spending without private pensions when their pots are zero', () => {
@@ -491,10 +543,10 @@ test('preserves balance conservation and never creates negative assets or draws'
     assert.ok(row.draws.cash >= 0);
 
     row.balances.privatePension.forEach((balance, index) => {
-      assert.ok(Math.abs(balance - (previous.privatePension[index] + row.contributions[index] + row.growth.privatePension[index] - row.draws.privatePension[index])) < 1e-9);
+      assert.ok(Math.abs(balance - (previous.privatePension[index] + row.contributions[index] + row.growth.privatePension[index] - row.draws.privatePension[index] - row.lumpSumDraws.privatePension[index])) < 1e-9);
     });
-    assert.ok(Math.abs(row.balances.savings - (previous.savings + row.growth.savings - row.draws.savings)) < 1e-9);
-    assert.ok(Math.abs(row.balances.cash - (previous.cash + row.growth.cash - row.draws.cash)) < 1e-9);
+    assert.ok(Math.abs(row.balances.savings - (previous.savings + row.growth.savings - row.draws.savings - row.lumpSumDraws.savings)) < 1e-9);
+    assert.ok(Math.abs(row.balances.cash - (previous.cash + row.growth.cash - row.draws.cash - row.lumpSumDraws.cash)) < 1e-9);
     previous = {
       privatePension: row.balances.privatePension,
       savings: row.balances.savings,
