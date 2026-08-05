@@ -30,17 +30,23 @@ For each projection year, the simulator:
    amount is entered in today's money and is increased by the configured
    inflation rate for each elapsed year since the projection start, the same
    as spending targets in step 6; a person's entered salary is not inflated.
-6. Increases essential and preferred spending from the starting annual amounts
+6. Adds each enabled other-income entry whose configured start age (measured
+   against the oldest person's age, like a lump sum) has been reached.
+   Other income is household-level rather than tied to a specific person,
+   is entered in today's money and inflates the same way State Pension does,
+   and continues every year once started rather than being one-off like a
+   lump sum.
+7. Increases essential and preferred spending from the starting annual amounts
    by the configured inflation rate for each elapsed year.
-7. Treats household resources as cumulative. Salary and State Pension count
-   towards the spending target first; the simulator then draws only the
-   remaining gap from private pensions, savings and cash in the visible
-   household drawdown order until preferred spending is met or all selected
-   balances are exhausted. State Pension is therefore alongside private
-   pension drawdown in time, but not an independent second spending target.
-   The projection records essential and preferred shortfalls and prevents
-   balances and draws from becoming negative.
-8. Records nominal pounds and a “today’s money” view by dividing projected
+8. Treats household resources as cumulative. Salary, State Pension and other
+   income count towards the spending target first; the simulator then draws
+   only the remaining gap from private pensions, savings and cash in the
+   visible household drawdown order until preferred spending is met or all
+   selected balances are exhausted. These income sources are therefore
+   alongside private pension drawdown in time, but not an independent second
+   spending target. The projection records essential and preferred
+   shortfalls and prevents balances and draws from becoming negative.
+9. Records nominal pounds and a “today’s money” view by dividing projected
    values by the same cumulative inflation factor.
 
 The annual table is the audit trail for these steps. The displayed sample
@@ -66,14 +72,23 @@ saved locally or exported as JSON.
   targets; the model does not check National Insurance records, eligibility
   or current government rates, and does not model the actual UK State Pension
   uprating rules (such as the triple lock) beyond this flat assumed rate.
+- **Other income:** a household-level, recurring annual amount entered in
+  today's money, starting at a configured age (measured against the oldest
+  person, like a lump sum) and inflating the same way State Pension does. For
+  income not modelled elsewhere: a defined benefit pension, an annuity,
+  rental income and similar. It is not tied to a specific person, is not a
+  drawable balance, and does not model any product-specific rules (a DB
+  scheme's own revaluation and survivor rules, an annuity's guarantee
+  period, property-specific tax) beyond the flat entered amount; it can be
+  disabled without deleting it, the same as a lump sum.
 - **Drawdown:** the amount taken from the configured private-pension, savings
   and cash balances to fund the modelled spending. The user chooses the order;
   the model does not optimise it or model tax consequences.
 - **Spending:** essential spending is the minimum target and preferred spending
-  is the higher target. Available salary and State Pension income plus ordered
-  drawdown cumulatively fund one household spending target; private pension is
-  a flexible top-up, not a full withdrawal alongside State Pension. Any
-  unfunded amount is reported as a shortfall.
+  is the higher target. Available salary, State Pension and other income plus
+  ordered drawdown cumulatively fund one household spending target; private
+  pension is a flexible top-up, not a full withdrawal alongside these income
+  sources. Any unfunded amount is reported as a shortfall.
 - **Lump-sum withdrawals:** dated one-off amounts entered with an age, source
   and optional description. The simulator fulfils them from the selected source
   after that year's growth. The fulfilled amount is one-off spending, not
@@ -96,11 +111,18 @@ The MVP intentionally excludes:
 - UK income tax, pension tax treatment and tax-free cash;
 - National Insurance and contribution-credit calculations;
 - Pension Credit and other means-tested or state benefits;
-- annuities and other guaranteed-income products;
-- defined-benefit pensions;
+- annuities, defined-benefit pensions and other guaranteed-income products'
+  own rules (revaluation, guarantee periods, survivor benefits and similar);
+  Other income lets a flat, inflating approximation of one be entered
+  manually, with none of those product-specific rules applied;
 - multiple private pension pots or pot-specific rules;
-- property, mortgages and housing transactions;
-- investments outside private pensions, savings and cash;
+- property, mortgages and housing transactions; a property's rental income
+  could be entered as Other income, but no stamp duty, mortgage debt or
+  property-specific tax treatment is modelled;
+- growable, drawable assets outside private pensions, savings and cash (an
+  ISA, a share portfolio and similar); tracked separately from Other income,
+  which is a recurring income stream, and not yet modelled at all (see
+  the project's open issues);
 - detailed contribution limits, allowances and other pension-law rules;
 - stochastic returns, volatility, sequence-of-returns risk and fees;
 - mortality, life expectancy, death, survivor or other household behaviour;

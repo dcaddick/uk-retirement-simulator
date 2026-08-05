@@ -4,6 +4,42 @@ Version numbering is independent of the release label. The project is Alpha and
 stays Alpha until that is changed deliberately; reaching a particular version
 number does not imply Beta.
 
+## Alpha 0.9.0 - 2026-08-06
+
+Adds Other income, per #13. Scoped down from #13's original ask: this covers
+recurring income only (a defined benefit pension, an annuity, rental income
+and similar), not a generic growable/drawable asset (an ISA, a share
+portfolio). The asset half is deliberately deferred to #26, since it needs
+its own balance tracking and a decision on whether it participates in the
+household drawdown order, both bigger and separate questions from adding a
+recurring income stream.
+
+Added:
+
+- An **Other income** section, matching the existing Lump sum withdrawals
+  panel's interaction pattern: collapsible rows, each with a description,
+  annual amount, start age (measured against the oldest person, like a lump
+  sum) and an enable/disable checkbox. Entered in today's money and inflates
+  the same way State Pension does; is household-level rather than tied to a
+  specific person; recurs every year once started rather than being one-off.
+  Funds household spending the same way Salary and State Pension already do.
+  Shown in the chart as a new stacked segment and in the table as a new
+  column, both alongside Salary and State Pension.
+
+Changed:
+
+- Schema version bumped to 3. Older saved and exported scenarios still load:
+  migration backfills an empty `otherIncome` list and marks any existing
+  entry enabled.
+- `docs/MODEL-METHODOLOGY.md`'s Deliberate Exclusions list is updated: an
+  annuity, defined-benefit pension or rental income's flat amount can now be
+  approximated via Other income, though none of their product-specific rules
+  (DB revaluation, annuity guarantee periods, property tax) are modelled.
+  Property, and any growable/drawable asset, remain fully out of scope.
+
+Filed [#26](https://github.com/dcaddick/uk-retirement-simulator/issues/26)
+to track the deferred "other assets" half.
+
 ## Alpha 0.8.0 - 2026-08-06
 
 Resolves #19. Two problems: the inflation assumption had no stated source,

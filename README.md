@@ -2,7 +2,7 @@
 
 An early-stage, transparent retirement-income modelling tool for approaching-retirement UK couples.
 
-**Release status: Alpha 0.8.0.** The simulator is an estimate-only work in
+**Release status: Alpha 0.9.0.** The simulator is an estimate-only work in
 progress, not financial, tax, legal or pension advice.
 
 The version shown in the page header matches `CHANGELOG.md`. Quote it when
@@ -16,8 +16,10 @@ definitive feedback from UK users and a separate review of the model's
 assumptions and presentation.
 
 The MVP models State Pension, simple private-pension drawdown, dated lump-sum
-withdrawals, savings and cash in a deterministic annual projection. Read the [model methodology](docs/MODEL-METHODOLOGY.md)
-for the annual calculation sequence, assumptions and deliberate exclusions.
+withdrawals, other recurring income (a defined benefit pension, an annuity,
+rental income and similar), savings and cash in a deterministic annual
+projection. Read the [model methodology](docs/MODEL-METHODOLOGY.md) for the
+annual calculation sequence, assumptions and deliberate exclusions.
 
 ## Open the simulator
 
@@ -62,8 +64,8 @@ the filename when you export. Use **Save locally** and **Load locally** to
 store a scenario in this browser on this device, or use **Export JSON** and
 **Import JSON** to move a scenario as a human-readable JSON file. Imported
 files must match the MVP's two-person GBP scenario shape. Each lump-sum
-withdrawal can be disabled without deleting it, to compare a scenario with and
-without it.
+withdrawal and other-income entry can be disabled without deleting it, to
+compare a scenario with and without it.
 
 Results are estimate-only outputs from the entered assumptions. This is not
 financial, tax, legal or pension advice, and it does not model UK tax, National

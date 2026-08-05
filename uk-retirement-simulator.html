@@ -13,7 +13,7 @@
       --on-accent: #10202c; --tooltip-bg: #10202c; --shadow: rgba(0,0,0,.35); --row-stripe: rgba(255,255,255,.025);
       --notice-bg: #302027; --notice-line: #d45d6f; --notice-text: #ff7d83; --disclosure-bg: #302b20;
       --chart-grid: #304355; --chart-axis: #627487;
-      --series-salary: #69c0e6; --series-state: #55c79a; --series-lump: #f0c571;
+      --series-salary: #69c0e6; --series-state: #55c79a; --series-other: #3fa796; --series-lump: #f0c571;
       --series-pension: #8e7dce; --series-savings: #f4a261; --series-cash: #e9c46a;
       --series-essential: #e58a9c; --series-preferred: #f0c571; --series-total: #9fb0c0;
       --left-w: 275px;
@@ -27,7 +27,7 @@
       --on-accent: #ffffff; --tooltip-bg: #ffffff; --shadow: rgba(21,35,48,.18); --row-stripe: rgba(21,35,48,.035);
       --notice-bg: #fdecef; --notice-line: #b0243c; --notice-text: #8f1d2c; --disclosure-bg: #fdf5e3;
       --chart-grid: #c9d6df; --chart-axis: #7d93a4;
-      --series-salary: #0b6f93; --series-state: #146d4a; --series-lump: #8a6500;
+      --series-salary: #0b6f93; --series-state: #146d4a; --series-other: #0d7a68; --series-lump: #8a6500;
       --series-pension: #6a41a3; --series-savings: #b4581f; --series-cash: #7d6414;
       --series-essential: #b0243c; --series-preferred: #8a5a00; --series-total: #4e6373;
     }
@@ -193,7 +193,7 @@
   <div class="top-notice">Local, reproducible UK retirement planning. Estimate only; not financial, tax or pension advice.</div>
   <header>
     <div class="header-row">
-      <div><h1 id="page-title">UK Retirement Simulator <span class="muted">Alpha 0.8.0</span></h1><p>A transparent two-person household projection. Working estimate, not financial advice.</p></div>
+      <div><h1 id="page-title">UK Retirement Simulator <span class="muted">Alpha 0.9.0</span></h1><p>A transparent two-person household projection. Working estimate, not financial advice.</p></div>
       <nav class="header-actions" aria-label="Scenario actions">
         <button type="button" id="new-scenario-header">New</button>
         <button type="button" id="save-scenario-header">Save locally</button>
@@ -284,6 +284,13 @@
         <span class="error" data-error-for="lumpSumWithdrawals"></span>
       </details>
 
+      <details class="panel group"><summary><h2>Other income</h2></summary>
+        <p class="muted">Recurring income not modelled elsewhere: a defined benefit pension, an annuity, rental income and similar. Starts at the oldest person’s age, is entered in today’s money and inflates the same way State Pension does, and is not tied to a specific person. Not a drawable asset, so nothing here is depleted.</p>
+        <div id="other-income-list"></div>
+        <button type="button" id="add-other-income">Add other income</button>
+        <span class="error" data-error-for="otherIncome"></span>
+      </details>
+
       <details class="panel group"><summary><h2>Household</h2></summary>
         <p class="panel-hint">Spending targets shared by the household, rather than any one person.</p>
         <div class="form-grid">
@@ -307,7 +314,7 @@
       <div class="chart-toolbar"><label class="display-control" for="display-mode">Display <select id="display-mode"><option value="todaysMoney">Today’s pounds (2026)</option><option value="nominal">Future pounds</option></select></label></div>
       <button type="button" id="chart-divider" role="separator" aria-orientation="horizontal" aria-label="Resize the chart" aria-valuemin="220" aria-valuemax="600" aria-valuenow="350"></button>
       <h3>Annual detail</h3>
-      <div class="table-wrap"><table id="results-table"><caption class="muted">The table provides the exact values represented in the chart, ordered assets first then income, drawdown and outcome. Salary and State Pension are income; drawdown tops up the remaining gap to the household spending target. Event names any lump-sum withdrawal that year; +/- shows “ok” or the shortfall against the preferred target.</caption><thead></thead><tbody></tbody></table></div>
+      <div class="table-wrap"><table id="results-table"><caption class="muted">The table provides the exact values represented in the chart, ordered assets first then income, drawdown and outcome. Salary, State Pension and other income are income; drawdown tops up the remaining gap to the household spending target. Event names any lump-sum withdrawal that year; +/- shows “ok” or the shortfall against the preferred target.</caption><thead></thead><tbody></tbody></table></div>
       </section>
       <details class="assumptions">
         <summary>Model assumptions and limits</summary>
@@ -339,7 +346,7 @@
   <script>
     /* ENGINE_START */
     (() => {
-      const SCHEMA_VERSION = 2;
+      const SCHEMA_VERSION = 3;
       const PRIORITIES = ['privatePension', 'savings', 'cash'];
       const LUMP_SUM_SOURCES = ['privatePension', 'savings', 'cash'];
 
@@ -371,7 +378,8 @@
         ],
         cash: { amount: 15000, interestPct: 0 },
         savings: { amount: 50000, interestPct: 3 },
-        lumpSumWithdrawals: []
+        lumpSumWithdrawals: [],
+        otherIncome: []
       });
 
       const validateScenario = (scenario) => {
@@ -452,6 +460,17 @@
             if (household && Number.isInteger(withdrawal.age) && Number.isInteger(household.endAge) && withdrawal.age > household.endAge) error(field('age'), `must be no greater than ${household.endAge}`);
           });
         }
+        if (scenario.otherIncome !== undefined && !Array.isArray(scenario.otherIncome)) error('otherIncome', 'must be an array');
+        if (Array.isArray(scenario.otherIncome)) {
+          scenario.otherIncome.forEach((item, index) => {
+            const field = (name) => `otherIncome[${index}].${name}`;
+            if (!item || typeof item !== 'object' || Array.isArray(item)) { error(`otherIncome[${index}]`, 'must be an object'); return; }
+            if (typeof item.label !== 'string' || !item.label.trim()) error(field('label'), 'is required');
+            nonNegative(item.annualAmount, field('annualAmount'));
+            nonNegativeInteger(item.startAge, field('startAge'));
+            if (item.enabled !== undefined && typeof item.enabled !== 'boolean') error(field('enabled'), 'must be true or false');
+          });
+        }
         return { valid: errors.length === 0, errors };
       };
 
@@ -463,6 +482,12 @@
         if (scenario.lumpSumWithdrawals === undefined) scenario.lumpSumWithdrawals = [];
         if (Array.isArray(scenario.lumpSumWithdrawals)) {
           scenario.lumpSumWithdrawals = scenario.lumpSumWithdrawals.map((item) => (
+            item && typeof item === 'object' && !Array.isArray(item) && item.enabled === undefined
+          ) ? { ...item, enabled: true } : item);
+        }
+        if (scenario.otherIncome === undefined) scenario.otherIncome = [];
+        if (Array.isArray(scenario.otherIncome)) {
+          scenario.otherIncome = scenario.otherIncome.map((item) => (
             item && typeof item === 'object' && !Array.isArray(item) && item.enabled === undefined
           ) ? { ...item, enabled: true } : item);
         }
@@ -483,6 +508,7 @@
         return value;
       };
       const scaleLumpSumEvents = (events, factor) => events.map((event) => ({ ...event, amount: event.amount / factor, drawn: event.drawn / factor, shortfall: event.shortfall / factor }));
+      const scaleOtherIncomeEvents = (events, factor) => events.map((event) => ({ ...event, amount: event.amount / factor }));
 
       const projectScenario = (scenario) => {
         const validation = validateScenario(scenario);
@@ -559,14 +585,24 @@
           // Salary is a user-entered figure that stops at retirement and is not
           // inflated.
           const statePension = people.map((person, index) => ages[index] >= person.statePension.startAge ? person.statePension.annualAmount * inflationFactor : 0);
+          // Recurring income not modelled elsewhere (a defined benefit pension, an
+          // annuity, rental income and similar): household-level, not tied to a
+          // specific person, triggered by the oldest person's age like a lump sum,
+          // but recurring every year once started rather than one-off. Entered in
+          // today's money and inflates the same way State Pension does.
+          const otherIncomeItems = (scenario.otherIncome || [])
+            .filter((item) => item.enabled !== false && anchorAge + yearIndex >= item.startAge)
+            .map((item) => ({ label: item.label, startAge: item.startAge, amount: item.annualAmount * inflationFactor }));
+          const otherIncomeTotal = sum(otherIncomeItems.map((item) => item.amount));
           // Lump sums are one-off spending, not income: they reduce their source
           // balance above but must not displace the ordinary drawdown that funds
           // this year's household spending target.
           const income = {
             salary: sum(salary),
             statePension: sum(statePension),
+            other: otherIncomeTotal,
             lumpSum: lumpSumIncome,
-            total: sum(salary) + sum(statePension)
+            total: sum(salary) + sum(statePension) + otherIncomeTotal
           };
           const preferred = household.preferredAnnual * inflationFactor;
           const essential = household.essentialAnnual * inflationFactor;
@@ -637,6 +673,7 @@
             salary: clone(salary),
             contributions: clone(contributions),
             statePension: clone(statePension),
+            otherIncome: clone(otherIncomeItems),
             income: clone(income),
             growth: { privatePension: clone(privateGrowth), savings: savingsGrowth, cash: cashGrowth },
             draws: clone(draws),
@@ -651,6 +688,7 @@
             salary,
             contributions,
             statePension,
+            otherIncome: otherIncomeItems,
             income,
             growth: nominal.growth,
             draws,
@@ -661,7 +699,7 @@
             depletion,
             depletionYear: clone(firstDepletionYear),
             nominal,
-            todaysMoney: { ...scaleMoney(nominal, inflationFactor), lumpSumWithdrawals: scaleLumpSumEvents(nominal.lumpSumWithdrawals, inflationFactor) }
+            todaysMoney: { ...scaleMoney(nominal, inflationFactor), lumpSumWithdrawals: scaleLumpSumEvents(nominal.lumpSumWithdrawals, inflationFactor), otherIncome: scaleOtherIncomeEvents(nominal.otherIncome, inflationFactor) }
           });
         }
         return rows;
@@ -737,7 +775,7 @@
       };
       // Current rows straight from the DOM, carrying open/closed state so a
       // re-render does not collapse what the user had open.
-      const readLumpRows = () => [...form.querySelectorAll('.lump-sum-row')].map((row) => ({
+      const readLumpRows = () => [...document.querySelectorAll('#lump-sum-list .lump-sum-row')].map((row) => ({
         ...Object.fromEntries(['age', 'amount', 'source', 'label'].map((name) => [name, row.querySelector(`[data-lump-field="${name}"]`)?.value ?? ''])),
         enabled: row.querySelector('[data-lump-field="enabled"]')?.checked ?? true,
         expanded: row.querySelector('[data-lump-toggle]')?.getAttribute('aria-expanded') === 'true'
@@ -763,6 +801,67 @@
         enabledLabel.title = `Include ${described} in the projection`;
         enabledLabel.querySelector('input').setAttribute('aria-label', `Include ${described} in the projection`);
       };
+      // Other income reuses the lump-sum row markup and CSS classes: same
+      // collapsible-summary shape (chevron, amount, description, age, enabled,
+      // remove), just with different data-* hooks so the two lists' event
+      // handlers and queries never cross each other, since both live in #scenario-form.
+      const renderOtherIncome = (items = []) => {
+        const list = document.querySelector('#other-income-list');
+        if (!list) return;
+        if (!items.length) { list.innerHTML = '<p class="muted">No other income added.</p>'; return; }
+        list.innerHTML = items.map((item, index) => {
+          const startAge = item.startAge ?? '';
+          const annualAmount = item.annualAmount ?? '';
+          const label = item.label ?? '';
+          const enabled = item.enabled !== false;
+          const field = (name) => `otherIncome[${index}].${name}`;
+          const complete = String(startAge).trim() !== '' && String(annualAmount).trim() !== '';
+          const expanded = item.expanded ?? !complete;
+          const described = label.trim() || 'Other income';
+          const editorId = `other-income-editor-${index}`;
+          return `<div class="lump-sum-row${enabled ? '' : ' disabled'}" data-other-income-index="${index}">
+            <div class="lump-summary">
+              <button type="button" class="lump-chevron" data-other-income-toggle aria-expanded="${expanded}" aria-controls="${editorId}" aria-label="${expanded ? 'Collapse' : 'Edit'} ${escapeHtml(described)}">›</button>
+              <span class="lump-summary-amount">${annualAmount === '' ? '-' : number(Number(annualAmount))}</span>
+              <span class="lump-summary-reason" title="${escapeHtml(described)}">${escapeHtml(described)}</span>
+              <span class="lump-summary-date">${startAge === '' ? '' : `Age ${escapeHtml(startAge)}`}</span>
+              <label class="lump-summary-enabled" title="Include ${escapeHtml(described)} in the projection"><input type="checkbox" data-other-income-field="enabled" aria-label="Include ${escapeHtml(described)} in the projection"${enabled ? ' checked' : ''}></label>
+              <button type="button" class="remove-lump-sum" data-remove-other-income aria-label="Remove ${escapeHtml(described)}">Remove</button>
+            </div>
+            <div class="lump-editor" id="${editorId}"${expanded ? '' : ' hidden'}>
+              <div class="lump-grid">
+                <label>Description <input type="text" data-other-income-field="label" value="${escapeHtml(label)}" aria-invalid="false" aria-describedby="${field('label')}-error"><span class="error" id="${field('label')}-error" data-error-for="${field('label')}"></span></label>
+                <label>Annual amount (£) <input type="number" min="0" step="100" data-other-income-field="annualAmount" value="${escapeHtml(annualAmount)}" aria-invalid="false" aria-describedby="${field('annualAmount')}-error"><span class="error" id="${field('annualAmount')}-error" data-error-for="${field('annualAmount')}"></span></label>
+                <label>Start age (oldest person) <input type="number" min="0" step="1" data-other-income-field="startAge" value="${escapeHtml(startAge)}" aria-invalid="false" aria-describedby="${field('startAge')}-error"><span class="error" id="${field('startAge')}-error" data-error-for="${field('startAge')}"></span></label>
+              </div>
+            </div>
+          </div>`;
+        }).join('');
+      };
+      const readOtherIncomeRows = () => [...document.querySelectorAll('#other-income-list .lump-sum-row')].map((row) => ({
+        ...Object.fromEntries(['label', 'annualAmount', 'startAge'].map((name) => [name, row.querySelector(`[data-other-income-field="${name}"]`)?.value ?? ''])),
+        enabled: row.querySelector('[data-other-income-field="enabled"]')?.checked ?? true,
+        expanded: row.querySelector('[data-other-income-toggle]')?.getAttribute('aria-expanded') === 'true'
+      }));
+      const refreshOtherIncomeSummary = (row) => {
+        if (!row) return;
+        const value = (name) => (row.querySelector(`[data-other-income-field="${name}"]`)?.value ?? '').trim();
+        const amount = value('annualAmount');
+        const age = value('startAge');
+        const described = value('label') || 'Other income';
+        row.querySelector('.lump-summary-amount').textContent = amount === '' ? '-' : number(Number(amount));
+        const reason = row.querySelector('.lump-summary-reason');
+        reason.textContent = described;
+        reason.title = described;
+        row.querySelector('.lump-summary-date').textContent = age === '' ? '' : `Age ${age}`;
+        const toggle = row.querySelector('[data-other-income-toggle]');
+        const remove = row.querySelector('[data-remove-other-income]');
+        const enabledLabel = row.querySelector('.lump-summary-enabled');
+        toggle.setAttribute('aria-label', `${toggle.getAttribute('aria-expanded') === 'true' ? 'Collapse' : 'Edit'} ${described}`);
+        remove.setAttribute('aria-label', `Remove ${described}`);
+        enabledLabel.title = `Include ${described} in the projection`;
+        enabledLabel.querySelector('input').setAttribute('aria-label', `Include ${described} in the projection`);
+      };
       const readForm = () => {
         const scenario = clone(lastValidScenario);
         form.querySelectorAll('[data-field]').forEach((input) => {
@@ -770,11 +869,17 @@
           setPath(scenario, input.dataset.field, value);
         });
         scenario.household.drawdownPriority = [...form.querySelectorAll('[data-priority-index]')].sort((a, b) => a.dataset.priorityIndex - b.dataset.priorityIndex).map((input) => input.value);
-        scenario.lumpSumWithdrawals = [...form.querySelectorAll('.lump-sum-row')].map((row) => {
+        scenario.lumpSumWithdrawals = [...document.querySelectorAll('#lump-sum-list .lump-sum-row')].map((row) => {
           const value = (name) => row.querySelector(`[data-lump-field="${name}"]`)?.value ?? '';
           const numeric = (name) => value(name).trim() === '' ? NaN : Number(value(name));
           const enabled = row.querySelector('[data-lump-field="enabled"]')?.checked ?? true;
           return { age: numeric('age'), amount: numeric('amount'), source: value('source'), label: value('label').trim(), enabled };
+        });
+        scenario.otherIncome = [...document.querySelectorAll('#other-income-list .lump-sum-row')].map((row) => {
+          const value = (name) => row.querySelector(`[data-other-income-field="${name}"]`)?.value ?? '';
+          const numeric = (name) => value(name).trim() === '' ? NaN : Number(value(name));
+          const enabled = row.querySelector('[data-other-income-field="enabled"]')?.checked ?? true;
+          return { label: value('label').trim(), annualAmount: numeric('annualAmount'), startAge: numeric('startAge'), enabled };
         });
         return scenario;
       };
@@ -800,30 +905,42 @@
         if (field === 'household.drawdownPriority') return 'Drawdown order';
         const lump = field.match(/^lumpSumWithdrawals\[(\d+)\]\.(.+)$/);
         if (lump) {
-          const input = document.querySelector(`.lump-sum-row[data-lump-index="${lump[1]}"] [data-lump-field="${lump[2]}"]`);
+          const input = document.querySelector(`#lump-sum-list .lump-sum-row[data-lump-index="${lump[1]}"] [data-lump-field="${lump[2]}"]`);
           const label = input?.closest('label');
           return `Lump sum ${Number(lump[1]) + 1}, ${label ? labelText(label) : lump[2]}`;
+        }
+        const otherIncome = field.match(/^otherIncome\[(\d+)\]\.(.+)$/);
+        if (otherIncome) {
+          const input = document.querySelector(`#other-income-list .lump-sum-row[data-other-income-index="${otherIncome[1]}"] [data-other-income-field="${otherIncome[2]}"]`);
+          const label = input?.closest('label');
+          return `Other income ${Number(otherIncome[1]) + 1}, ${label ? labelText(label) : otherIncome[2]}`;
         }
         const label = form.querySelector(`[data-field="${field}"]`)?.closest('label');
         return label ? labelText(label) : field;
       };
       const focusField = (field) => {
         const lump = field.match(/^lumpSumWithdrawals\[(\d+)\]\.(.+)$/);
+        const otherIncome = field.match(/^otherIncome\[(\d+)\]\.(.+)$/);
         const input = field === 'household.drawdownPriority'
           ? form.querySelector('[data-priority-index]')
           : lump
-            ? document.querySelector(`.lump-sum-row[data-lump-index="${lump[1]}"] [data-lump-field="${lump[2]}"]`)
-            : form.querySelector(`[data-field="${field}"]`);
+            ? document.querySelector(`#lump-sum-list .lump-sum-row[data-lump-index="${lump[1]}"] [data-lump-field="${lump[2]}"]`)
+            : otherIncome
+              ? document.querySelector(`#other-income-list .lump-sum-row[data-other-income-index="${otherIncome[1]}"] [data-other-income-field="${otherIncome[2]}"]`)
+              : form.querySelector(`[data-field="${field}"]`);
         if (!input) return;
-        // Open the containing panel and, for a lump sum, its collapsed editor.
-        // focus() on a hidden element does nothing.
+        // Open the containing panel and, for a lump sum or other-income row, its
+        // collapsed editor. focus() on a hidden element does nothing. Lump sum and
+        // other-income rows share the same .lump-sum-row/.lump-editor markup, so
+        // the toggle and refresh function are picked by which one the row has.
         input.closest('details')?.setAttribute('open', '');
         const editor = input.closest('.lump-editor');
         if (editor?.hidden) {
           editor.hidden = false;
-          const toggle = editor.closest('.lump-sum-row').querySelector('[data-lump-toggle]');
+          const row = editor.closest('.lump-sum-row');
+          const toggle = row.querySelector('[data-lump-toggle], [data-other-income-toggle]');
           toggle.setAttribute('aria-expanded', 'true');
-          refreshLumpSummary(editor.closest('.lump-sum-row'));
+          if (row.matches('[data-other-income-index]')) refreshOtherIncomeSummary(row); else refreshLumpSummary(row);
         }
         input.focus();
         input.scrollIntoView({ block: 'center' });
@@ -858,16 +975,19 @@
       const showErrors = (errors) => {
         renderValidationSummary(errors);
         form.querySelectorAll('[data-error-for]').forEach((node) => { node.textContent = ''; });
-        form.querySelectorAll('[data-field], [data-priority-index], [data-lump-field]').forEach((input) => { input.setAttribute('aria-invalid', 'false'); });
+        form.querySelectorAll('[data-field], [data-priority-index], [data-lump-field], [data-other-income-field]').forEach((input) => { input.setAttribute('aria-invalid', 'false'); });
         errors.forEach(({ field, message }) => {
           const node = Array.from(form.querySelectorAll('[data-error-for]')).find((candidate) => candidate.dataset.errorFor === field);
           if (node) node.textContent = message;
           const lumpField = field.match(/^lumpSumWithdrawals\[(\d+)\]\.(.+)$/);
+          const otherIncomeField = field.match(/^otherIncome\[(\d+)\]\.(.+)$/);
           const inputs = field === 'household.drawdownPriority'
             ? form.querySelectorAll('[data-priority-index]')
             : lumpField
               ? document.querySelectorAll(`.lump-sum-row[data-lump-index="${lumpField[1]}"] [data-lump-field="${lumpField[2]}"]`)
-              : Array.from(form.querySelectorAll('[data-field]')).filter((input) => input.dataset.field === field);
+              : otherIncomeField
+                ? document.querySelectorAll(`.lump-sum-row[data-other-income-index="${otherIncomeField[1]}"] [data-other-income-field="${otherIncomeField[2]}"]`)
+                : Array.from(form.querySelectorAll('[data-field]')).filter((input) => input.dataset.field === field);
           inputs.forEach((input) => { input.setAttribute('aria-invalid', 'true'); });
         });
       };
@@ -878,6 +998,7 @@
         });
         form.querySelectorAll('[data-priority-index]').forEach((input) => { input.value = scenario.household.drawdownPriority[input.dataset.priorityIndex] || ''; });
         renderLumpSums(scenario.lumpSumWithdrawals || []);
+        renderOtherIncome(scenario.otherIncome || []);
       };
       const selectedRow = (row) => row[displayMode] || row.nominal;
       const firstDepletion = () => {
@@ -922,7 +1043,7 @@
           const item = selectedRow(row);
           const sources = balanceMode
             ? [sum(item.balances.privatePension), item.balances.savings, item.balances.cash]
-            : [item.income.salary, sum(item.statePension), sum(item.draws.privatePension), item.draws.savings, item.draws.cash];
+            : [item.income.salary, sum(item.statePension), item.income.other, sum(item.draws.privatePension), item.draws.savings, item.draws.cash];
           const stackedTotal = sources.reduce((total, value) => total + value, 0);
           return balanceMode ? [stackedTotal] : [stackedTotal, item.spending.essential, item.spending.preferred, stackedTotal + item.income.lumpSum];
         });
@@ -936,11 +1057,11 @@
         // They go through inline style, not fill=/stroke= presentation attributes, which do not resolve var().
         const colors = balanceMode
           ? ['var(--series-pension)', 'var(--series-savings)', 'var(--series-cash)']
-          : ['var(--series-salary)', 'var(--series-state)', 'var(--series-pension)', 'var(--series-savings)', 'var(--series-cash)'];
-        const labels = balanceMode ? ['Private pension balance', 'Savings balance', 'Cash balance'] : ['Salary income', 'State Pension', 'Private pension drawdown', 'Savings drawdown', 'Cash drawdown'];
+          : ['var(--series-salary)', 'var(--series-state)', 'var(--series-other)', 'var(--series-pension)', 'var(--series-savings)', 'var(--series-cash)'];
+        const labels = balanceMode ? ['Private pension balance', 'Savings balance', 'Cash balance'] : ['Salary income', 'State Pension', 'Other income', 'Private pension drawdown', 'Savings drawdown', 'Cash drawdown'];
         legend.innerHTML = balanceMode
           ? '<span class="legend-item"><i class="swatch" style="background:var(--series-pension)"></i>Private pensions</span><span class="legend-item"><i class="swatch" style="background:var(--series-savings)"></i>Savings</span><span class="legend-item"><i class="swatch" style="background:var(--series-cash)"></i>Cash</span>'
-          : '<span class="legend-item"><i class="swatch" style="background:var(--series-salary)"></i>Salary income</span><span class="legend-item"><i class="swatch" style="background:var(--series-state)"></i>State Pension</span><span class="legend-item"><i class="swatch" style="background:var(--series-lump)"></i>Lump sum withdrawal</span><span class="legend-item"><i class="swatch" style="background:var(--series-pension)"></i>Private pension drawdown</span><span class="legend-item"><i class="swatch" style="background:var(--series-savings)"></i>Savings drawdown</span><span class="legend-item"><i class="swatch" style="background:var(--series-cash)"></i>Cash drawdown</span><span class="legend-item"><i class="swatch line-swatch" style="color:var(--series-essential)"></i>Essential spending</span><span class="legend-item"><i class="swatch line-swatch preferred" style="color:var(--series-preferred)"></i>Preferred spending</span>';
+          : '<span class="legend-item"><i class="swatch" style="background:var(--series-salary)"></i>Salary income</span><span class="legend-item"><i class="swatch" style="background:var(--series-state)"></i>State Pension</span><span class="legend-item"><i class="swatch" style="background:var(--series-other)"></i>Other income</span><span class="legend-item"><i class="swatch" style="background:var(--series-lump)"></i>Lump sum withdrawal</span><span class="legend-item"><i class="swatch" style="background:var(--series-pension)"></i>Private pension drawdown</span><span class="legend-item"><i class="swatch" style="background:var(--series-savings)"></i>Savings drawdown</span><span class="legend-item"><i class="swatch" style="background:var(--series-cash)"></i>Cash drawdown</span><span class="legend-item"><i class="swatch line-swatch" style="color:var(--series-essential)"></i>Essential spending</span><span class="legend-item"><i class="swatch line-swatch preferred" style="color:var(--series-preferred)"></i>Preferred spending</span>';
         intro.textContent = balanceMode
           ? 'Stacked bars show the remaining private-pension, savings and cash balances in the selected display mode.'
           : 'Stacked bars show the resources available to fund spending. Lines show the essential and preferred household targets in the selected display mode.';
@@ -967,7 +1088,7 @@
           }
           const sources = balanceMode
             ? [sum(item.balances.privatePension), item.balances.savings, item.balances.cash]
-            : [item.income.salary, sum(item.statePension), sum(item.draws.privatePension), item.draws.savings, item.draws.cash];
+            : [item.income.salary, sum(item.statePension), item.income.other, sum(item.draws.privatePension), item.draws.savings, item.draws.cash];
           sources.forEach((value, source) => {
             if (value <= 0) return;
             const top = y(stacked + value); const bottom = y(stacked);
@@ -1036,14 +1157,14 @@
       const renderTable = () => {
         const head = document.querySelector('#results-table thead'); const body = document.querySelector('#results-table tbody');
         const people = lastValidScenario.people;
-        head.innerHTML = `<tr><th>Year</th><th>${escapeHtml(people[0].name)}</th><th>${escapeHtml(people[1].name)}</th><th>Total assets</th><th>${escapeHtml(people[0].name)} pension</th><th>${escapeHtml(people[1].name)} pension</th><th>Cash balance</th><th>Savings balance</th><th>Salary income</th><th>State Pension</th><th>Private drawdown</th><th>Savings drawdown</th><th>Cash drawdown</th><th>Essential spending</th><th>Event</th><th>+/-</th></tr>`;
+        head.innerHTML = `<tr><th>Year</th><th>${escapeHtml(people[0].name)}</th><th>${escapeHtml(people[1].name)}</th><th>Total assets</th><th>${escapeHtml(people[0].name)} pension</th><th>${escapeHtml(people[1].name)} pension</th><th>Cash balance</th><th>Savings balance</th><th>Salary income</th><th>State Pension</th><th>Other income</th><th>Private drawdown</th><th>Savings drawdown</th><th>Cash drawdown</th><th>Essential spending</th><th>Event</th><th>+/-</th></tr>`;
         body.innerHTML = lastProjection.map((row) => {
           const item = selectedRow(row);
           const privateDraw = sum(item.draws.privatePension);
           const totalAssets = sum(item.balances.privatePension) + item.balances.savings + item.balances.cash;
           const eventText = (item.lumpSumWithdrawals || []).filter((event) => event.drawn > 0).map((event) => `${event.label} (${number(event.drawn)})`).join('; ');
           const status = item.spending.preferredShortfall > 0 ? `-${number(item.spending.preferredShortfall)}` : 'ok';
-          return `<tr><th scope="row">${row.year}</th><td>${row.ages[0] ?? ''}</td><td>${row.ages[1] ?? ''}</td><td>${number(totalAssets)}</td><td>${number(item.balances.privatePension[0])}</td><td>${number(item.balances.privatePension[1])}</td><td>${number(item.balances.cash)}</td><td>${number(item.balances.savings)}</td><td>${number(item.income.salary)}</td><td>${number(sum(item.statePension))}</td><td>${number(privateDraw)}</td><td>${number(item.draws.savings)}</td><td>${number(item.draws.cash)}</td><td>${number(item.spending.essential)}</td><td>${escapeHtml(eventText || '-')}</td><td>${status}</td></tr>`;
+          return `<tr><th scope="row">${row.year}</th><td>${row.ages[0] ?? ''}</td><td>${row.ages[1] ?? ''}</td><td>${number(totalAssets)}</td><td>${number(item.balances.privatePension[0])}</td><td>${number(item.balances.privatePension[1])}</td><td>${number(item.balances.cash)}</td><td>${number(item.balances.savings)}</td><td>${number(item.income.salary)}</td><td>${number(sum(item.statePension))}</td><td>${number(item.income.other)}</td><td>${number(privateDraw)}</td><td>${number(item.draws.savings)}</td><td>${number(item.draws.cash)}</td><td>${number(item.spending.essential)}</td><td>${escapeHtml(eventText || '-')}</td><td>${status}</td></tr>`;
         }).join('');
       };
       const renderResults = () => { renderSummary(); renderChart(); renderTable(); };
@@ -1186,17 +1307,19 @@
       modal.addEventListener('click', (event) => { if (event.target === modal && closeModal) closeModal(); });
       form.addEventListener('input', recalculate); form.addEventListener('change', recalculate);
       form.addEventListener('input', (event) => { if (event.target.matches('[data-lump-field]')) refreshLumpSummary(event.target.closest('.lump-sum-row')); });
+      form.addEventListener('input', (event) => { if (event.target.matches('[data-other-income-field]')) refreshOtherIncomeSummary(event.target.closest('.lump-sum-row')); });
       form.addEventListener('change', (event) => {
-        if (!event.target.matches('[data-lump-field="enabled"]')) return;
+        if (!event.target.matches('[data-lump-field="enabled"], [data-other-income-field="enabled"]')) return;
         event.target.closest('.lump-sum-row').classList.toggle('disabled', !event.target.checked);
       });
       form.addEventListener('click', (event) => {
-        const toggle = event.target.closest('[data-lump-toggle]');
+        const toggle = event.target.closest('[data-lump-toggle], [data-other-income-toggle]');
         if (!toggle) return;
         const expanded = toggle.getAttribute('aria-expanded') === 'true';
         toggle.setAttribute('aria-expanded', String(!expanded));
         document.querySelector(`#${toggle.getAttribute('aria-controls')}`).hidden = expanded;
-        refreshLumpSummary(toggle.closest('.lump-sum-row'));
+        const row = toggle.closest('.lump-sum-row');
+        if (row.matches('[data-other-income-index]')) refreshOtherIncomeSummary(row); else refreshLumpSummary(row);
       });
       document.querySelector('#display-mode').addEventListener('change', (event) => { displayMode = event.target.value; renderResults(); });
       const setChartMode = (mode) => {
@@ -1217,6 +1340,16 @@
         // Re-render so data-lump-index and the error ids follow the new positions;
         // without it a later row's errors would land on the wrong entry.
         renderLumpSums(readLumpRows());
+        recalculate();
+      });
+      document.querySelector('#add-other-income').addEventListener('click', () => {
+        renderOtherIncome([...readOtherIncomeRows(), { label: '', annualAmount: '', startAge: '', enabled: true }]);
+        recalculate();
+      });
+      form.addEventListener('click', (event) => {
+        if (!event.target.closest('[data-remove-other-income]')) return;
+        event.target.closest('.lump-sum-row').remove();
+        renderOtherIncome(readOtherIncomeRows());
         recalculate();
       });
       document.querySelector('#save-scenario-header').addEventListener('click', () => {

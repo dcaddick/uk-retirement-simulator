@@ -182,3 +182,49 @@ DOM inspection and the console:
 No new screenshots were captured this pass; verification was DOM- and
 console-based rather than visual, since the changes are values and layout
 positions rather than a visual redesign.
+
+## Alpha 0.5.0 through 0.9.0 verification
+
+Covers scenario naming and export filenames, the lump-sum enable/disable
+flag (#9, #10), the merged People section (#20), the Returns and
+inflation / Household split (#21), the adjustable chart divider (#11), the
+inflation source and State Pension uprating (#19), and Other income (#13).
+Schema version moved 1 to 3 across this range (2 for #9/#10, 3 for #13);
+each step's migration was exercised by its own regression tests, and the
+automated suite passes at 32 of 32 by the end of this range.
+
+Verified in a real browser (via DOM inspection, dispatched events and the
+console), across separate passes as each feature landed:
+
+- Scenario name round-trips through the form and the export filename is
+  derived from it via `slugify`, confirmed by capturing the anchor's
+  `download` attribute rather than actually triggering a file save.
+- A lump sum's enable checkbox dims its row, is excluded from the
+  projection while unchecked (confirmed against the table), and restores
+  correctly when re-checked; its accessible label updates live as the
+  description is typed.
+- The People section renders both people's fields in two row-aligned
+  columns, collapses to one column under 480px with no horizontal overflow,
+  and validation-summary focus still opens the right field inside the new
+  nested structure.
+- The relocated inflation field still drives the projection correctly
+  (nominal essential spending scaled as expected at an increased rate), and
+  validation-summary focus still opens the Returns and inflation panel.
+- The chart/table divider's drag and arrow-key interactions recompute the
+  SVG `viewBox` and the underlying bar geometry together, not just the CSS
+  box; clamp at the configured min/max; persist across reload; and hide
+  below 600px width with no horizontal overflow at 375px.
+- Today's-money display shows the State Pension amount unchanged at the
+  entered figure across years once claimed, while nominal/future-pounds
+  shows it compounding correctly; salary stays flat in nominal terms.
+- Other income starts at the configured age, appears as a new stacked
+  chart segment and table column alongside Salary and State Pension, its
+  tooltip carries the correct age/year/amount, and the legend lists it.
+  Adding a lump sum and an other-income entry in the same session at the
+  same time confirmed the two collapsible lists (which share the same row
+  markup and CSS classes) do not cross-contaminate each other's read,
+  enable/disable, validation-focus or remove behaviour.
+- Console was clean throughout every pass: no errors or warnings.
+
+No new screenshots were captured; verification was DOM- and console-based
+throughout this range, consistent with the 0.3.0/0.4.0 pass above.

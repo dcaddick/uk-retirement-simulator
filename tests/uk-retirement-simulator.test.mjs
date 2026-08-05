@@ -8,14 +8,14 @@ import { fileURLToPath } from 'node:url';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const html = fs.readFileSync(path.join(root, 'uk-retirement-simulator.html'), 'utf8');
 test('UK MVP markup exposes the focused interface without network dependencies', () => {
-  const sections = ['Scenario', 'People', 'Returns and inflation', 'Cash and savings', 'Drawdown order', 'Lump sum withdrawals', 'Household'];
+  const sections = ['Scenario', 'People', 'Returns and inflation', 'Cash and savings', 'Drawdown order', 'Lump sum withdrawals', 'Other income', 'Household'];
   let previous = -1;
   for (const section of sections) {
     const position = html.indexOf(`<h2>${section}</h2>`);
     assert.ok(position > previous, `section ${section} is missing or out of order`);
     previous = position;
   }
-  for (const hook of ['scenario-form', 'summary', 'annual-chart', 'chart-tooltip', 'results-table', 'display-mode', 'chart-income', 'chart-balance', 'chart-legend', 'lump-sum-list', 'add-lump-sum', 'save-scenario', 'load-scenario', 'export-scenario', 'import-scenario']) {
+  for (const hook of ['scenario-form', 'summary', 'annual-chart', 'chart-tooltip', 'results-table', 'display-mode', 'chart-income', 'chart-balance', 'chart-legend', 'lump-sum-list', 'add-lump-sum', 'other-income-list', 'add-other-income', 'save-scenario', 'load-scenario', 'export-scenario', 'import-scenario']) {
     assert.match(html, new RegExp(`(?:id|data-field)=["']${hook}`), `missing interface hook ${hook}`);
   }
   assert.match(html, /setupValidationAccessibility/);
@@ -59,10 +59,10 @@ const fixture = (update) => {
 };
 
 test('sample scenario is a valid two-person GBP scenario', () => {
-  assert.equal(SCHEMA_VERSION, 2);
+  assert.equal(SCHEMA_VERSION, 3);
   const scenario = sampleScenario();
   assert.deepEqual(scenario, {
-    schemaVersion: 2,
+    schemaVersion: 3,
     currency: 'GBP',
     scenarioName: 'Sample household',
     startYear: 2026,
@@ -89,7 +89,8 @@ test('sample scenario is a valid two-person GBP scenario', () => {
     ],
     cash: { amount: 15000, interestPct: 0 },
     savings: { amount: 50000, interestPct: 3 },
-    lumpSumWithdrawals: []
+    lumpSumWithdrawals: [],
+    otherIncome: []
   });
   assert.deepEqual(validateScenario(scenario), { valid: true, errors: [] });
 });
@@ -168,7 +169,7 @@ test('migration creates a current-version scenario without mutating raw input', 
   delete raw.schemaVersion;
   delete raw.currency;
   const migrated = migrateScenario(raw);
-  assert.equal(migrated.schemaVersion, 2);
+  assert.equal(migrated.schemaVersion, 3);
   assert.equal(migrated.currency, 'GBP');
   assert.deepEqual(raw.schemaVersion, undefined);
   assert.deepEqual(validateScenario(migrated), { valid: true, errors: [] });
@@ -177,7 +178,7 @@ test('migration creates a current-version scenario without mutating raw input', 
 test('migration re-stamps an older explicit schemaVersion to the current one', () => {
   const raw = { ...sampleScenario(), schemaVersion: 1 };
   const migrated = migrateScenario(raw);
-  assert.equal(migrated.schemaVersion, 2);
+  assert.equal(migrated.schemaVersion, 3);
   assert.deepEqual(validateScenario(migrated), { valid: true, errors: [] });
 });
 
@@ -221,6 +222,66 @@ test('a lump sum missing the enabled flag migrates to enabled, and a disabled lu
   assert.equal(row.income.lumpSum, 0);
   assert.equal(row.balances.cash, 10000);
   assert.deepEqual(row.lumpSumWithdrawals, []);
+});
+
+test('validates other-income fields and keeps older scenarios migratable', () => {
+  const scenario = sampleScenario();
+  delete scenario.otherIncome;
+  const migrated = migrateScenario(scenario);
+  assert.deepEqual(migrated.otherIncome, []);
+  migrated.otherIncome = [{ label: '', annualAmount: -1, startAge: -1 }];
+  const result = validateScenario(migrated);
+  assert.equal(result.valid, false);
+  assert.ok(result.errors.some((error) => error.field === 'otherIncome[0].label'));
+  assert.ok(result.errors.some((error) => error.field === 'otherIncome[0].annualAmount'));
+  assert.ok(result.errors.some((error) => error.field === 'otherIncome[0].startAge'));
+});
+
+test('an other-income entry missing the enabled flag migrates to enabled', () => {
+  const raw = sampleScenario();
+  raw.otherIncome = [{ label: 'Legacy entry', annualAmount: 4000, startAge: 65 }];
+  const migrated = migrateScenario(raw);
+  assert.equal(migrated.otherIncome[0].enabled, true);
+});
+
+test('other income starts at the configured age, inflates like State Pension, funds spending, and a disabled entry is excluded', () => {
+  const scenario = fixture((value) => {
+    value.startYear = 2030;
+    value.household.endAge = 68;
+    value.household.inflationPct = 10;
+    value.household.essentialAnnual = 0;
+    value.household.preferredAnnual = 0;
+    value.people.forEach((person) => {
+      person.age = 66;
+      person.retirementAge = 70;
+      person.salary = 0;
+      person.annualPensionContribution = 0;
+      person.privatePension = { pot: 0, growthPct: 0 };
+      person.statePension = { startAge: 70, annualAmount: 0 };
+    });
+    value.savings = { amount: 0, interestPct: 0 };
+    value.cash = { amount: 0, interestPct: 0 };
+    value.otherIncome = [
+      { label: 'Defined benefit pension', annualAmount: 100, startAge: 67, enabled: true },
+      { label: 'Ignored rental income', annualAmount: 9000, startAge: 67, enabled: false }
+    ];
+  });
+
+  const rows = projectScenario(scenario);
+
+  // yearIndex 0: age 66, neither entry has started yet.
+  assert.equal(rows[0].income.other, 0);
+  assert.deepEqual(rows[0].otherIncome, []);
+  // yearIndex 1: age 67, the enabled entry starts; the disabled one never appears.
+  assert.ok(Math.abs(rows[1].income.other - 110) < 1e-9); // 100 * 1.10^1
+  assert.equal(rows[1].otherIncome.length, 1);
+  assert.equal(rows[1].otherIncome[0].label, 'Defined benefit pension');
+  // yearIndex 2: continues compounding from the projection start year, not from age 67.
+  assert.ok(Math.abs(rows[2].income.other - 121) < 1e-9); // 100 * 1.10^2
+
+  // Salary and State Pension are both 0 here, so income.total isolates other income,
+  // proving it is summed into the same funding total the way State Pension already is.
+  assert.equal(rows[1].income.total, rows[1].income.other);
 });
 
 test('projects ages, salary, contributions and State Pension from their configured cutoffs', () => {
