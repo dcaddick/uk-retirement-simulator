@@ -21,10 +21,14 @@ For each projection year, the simulator:
    assumptions, not a live lookup of current policy or entitlement.
 5. Increases essential and preferred spending from the starting annual amounts
    by the configured inflation rate for each elapsed year.
-6. Uses income and then draws from private pensions, savings and cash in the
-   visible household drawdown order until preferred spending is met or all
-   selected balances are exhausted. The projection records essential and
-   preferred shortfalls and prevents balances and draws from becoming negative.
+6. Treats household resources as cumulative. Salary and State Pension income
+   count towards the spending target first; the simulator then draws only the
+   remaining gap from private pensions, savings and cash in the visible
+   household drawdown order until preferred spending is met or all selected
+   balances are exhausted. State Pension is therefore alongside private
+   pension drawdown in time, but not an independent second spending target.
+   The projection records essential and preferred shortfalls and prevents
+   balances and draws from becoming negative.
 7. Records nominal pounds and a “today’s money” view by dividing projected
    values by the same cumulative inflation factor.
 
@@ -53,7 +57,9 @@ saved locally or exported as JSON.
   the model does not optimise it or model tax consequences.
 - **Spending:** essential spending is the minimum target and preferred spending
   is the higher target. Available salary and State Pension income plus ordered
-  drawdown fund spending; any unfunded amount is reported as a shortfall.
+  drawdown cumulatively fund one household spending target; private pension is
+  a flexible top-up, not a full withdrawal alongside State Pension. Any
+  unfunded amount is reported as a shortfall.
 - **Inflation:** one fixed annual percentage increases both spending targets
   from the first projection year. The “today’s money” display removes this
   same assumed inflation and does not represent a separate economic forecast.

@@ -277,6 +277,31 @@ test('funds spending without private pensions when their pots are zero', () => {
   assert.equal(row.spending.preferredShortfall, 0);
 });
 
+test('counts State Pension cumulatively before private pension top-up', () => {
+  const scenario = fixture((value) => {
+    value.startYear = 2030;
+    value.household.endAge = 67;
+    value.household.essentialAnnual = 30000;
+    value.household.preferredAnnual = 36000;
+    value.people.forEach((person) => {
+      person.age = 67;
+      person.retirementAge = 60;
+      person.privatePension = { pot: 100000, growthPct: 0 };
+      person.statePension = { startAge: 67, annualAmount: 12500 };
+    });
+    value.savings = { amount: 0, interestPct: 0 };
+    value.cash = { amount: 0, interestPct: 0 };
+    value.household.drawdownPriority = ['privatePension', 'savings', 'cash'];
+  });
+
+  const [row] = projectScenario(scenario);
+
+  assert.equal(row.income.statePension, 25000);
+  assert.equal(row.draws.total, 11000);
+  assert.equal(row.income.total + row.draws.total, 36000);
+  assert.equal(row.spending.preferredShortfall, 0);
+});
+
 test('records savings exhaustion before using cash', () => {
   const scenario = fixture((value) => {
     value.startYear = 2030;
