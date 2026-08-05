@@ -12,12 +12,12 @@
 
 ## File map
 
-- Create: `uk-retirement-simulator.html` — self-contained interface, scenario editor, engine script, results table and chart.
-- Create: `tests/uk-retirement-simulator.test.mjs` — extracts the engine from the HTML and tests schema, projection math and invariants.
-- Create: `docs/MODEL-METHODOLOGY.md` — annual calculation order, assumptions and exclusions.
-- Create: `docs/TESTING.md` — automated and browser verification checklist.
-- Modify: `README.md` — user-facing scope, run instructions and disclaimer.
-- Modify: `CHANGELOG.md` — initial MVP entry after the first working release.
+- Create: `uk-retirement-simulator.html`: self-contained interface, scenario editor, engine script, results table and chart.
+- Create: `tests/uk-retirement-simulator.test.mjs`: extracts the engine from the HTML and tests schema, projection math and invariants.
+- Create: `docs/MODEL-METHODOLOGY.md`: annual calculation order, assumptions and exclusions.
+- Create: `docs/TESTING.md`: automated and browser verification checklist.
+- Modify: `README.md`: user-facing scope, run instructions and disclaimer.
+- Modify: `CHANGELOG.md`: initial MVP entry after the first working release.
 
 ## Task 1: Establish the scenario contract
 

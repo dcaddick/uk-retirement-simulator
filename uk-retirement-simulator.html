@@ -145,7 +145,7 @@
     details.assumptions .disclosure { margin: 0; border: 0; border-top: 1px solid var(--line); border-radius: 0; }
     /* In-page confirmation for destructive actions. A custom dialog rather than
        window.confirm(), which iOS/iPadOS Safari can silently suppress after a user
-       dismisses one with "Don't show more alerts" — it then returns false with no
+       dismisses one with "Don't show more alerts". It then returns false with no
        dialog shown, leaving the button apparently dead. */
     .modal-overlay { position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px; background: rgba(4,10,16,.62); }
     .modal-box { width: 100%; max-width: 420px; padding: 16px 16px 13px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); color: var(--text); box-shadow: 0 12px 40px var(--shadow); }
@@ -649,7 +649,7 @@
       let displayMode = 'todaysMoney';
       let chartMode = 'income';
       const currency = new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP', maximumFractionDigits: 0 });
-      const number = (value) => Number.isFinite(value) ? currency.format(value) : '—';
+      const number = (value) => Number.isFinite(value) ? currency.format(value) : '-';
       const fieldId = (field) => `field-${field.replace(/\[(\d+)\]/g, '-$1').replace(/[^a-zA-Z0-9]+/g, '-')}`;
       const getPath = (object, path) => path.replace(/\[(\d+)\]/g, '.$1').split('.').reduce((value, part) => value?.[part], object);
       const setPath = (object, path, value) => {
@@ -679,7 +679,7 @@
           return `<div class="lump-sum-row" data-lump-index="${index}">
             <div class="lump-summary">
               <button type="button" class="lump-chevron" data-lump-toggle aria-expanded="${expanded}" aria-controls="${editorId}" aria-label="${expanded ? 'Collapse' : 'Edit'} ${escapeHtml(described)}">›</button>
-              <span class="lump-summary-amount">${amount === '' ? '—' : number(Number(amount))}</span>
+              <span class="lump-summary-amount">${amount === '' ? '-' : number(Number(amount))}</span>
               <span class="lump-summary-reason" title="${escapeHtml(described)}">${escapeHtml(described)}</span>
               <span class="lump-summary-date">${age === '' ? '' : `Age ${escapeHtml(age)}`}</span>
               <button type="button" class="remove-lump-sum" data-remove-lump-sum aria-label="Remove ${escapeHtml(described)}">Remove</button>
@@ -709,7 +709,7 @@
         const amount = value('amount');
         const age = value('age');
         const described = value('label') || 'Lump sum';
-        row.querySelector('.lump-summary-amount').textContent = amount === '' ? '—' : number(Number(amount));
+        row.querySelector('.lump-summary-amount').textContent = amount === '' ? '-' : number(Number(amount));
         const reason = row.querySelector('.lump-summary-reason');
         reason.textContent = described;
         reason.title = described;
@@ -757,7 +757,7 @@
         if (lump) {
           const input = document.querySelector(`.lump-sum-row[data-lump-index="${lump[1]}"] [data-lump-field="${lump[2]}"]`);
           const label = input?.closest('label');
-          return `Lump sum ${Number(lump[1]) + 1} — ${label ? labelText(label) : lump[2]}`;
+          return `Lump sum ${Number(lump[1]) + 1}, ${label ? labelText(label) : lump[2]}`;
         }
         const label = form.querySelector(`[data-field="${field}"]`)?.closest('label');
         return label ? labelText(label) : field;
@@ -770,7 +770,7 @@
             ? document.querySelector(`.lump-sum-row[data-lump-index="${lump[1]}"] [data-lump-field="${lump[2]}"]`)
             : form.querySelector(`[data-field="${field}"]`);
         if (!input) return;
-        // Open the containing panel and, for a lump sum, its collapsed editor —
+        // Open the containing panel and, for a lump sum, its collapsed editor.
         // focus() on a hidden element does nothing.
         input.closest('details')?.setAttribute('open', '');
         const editor = input.closest('.lump-editor');
@@ -792,7 +792,7 @@
       const renderValidationSummary = (errors) => {
         // Recalculation runs on every keystroke. Rebuilding an unchanged list would
         // re-announce it in the live region and, worse, destroy the entry a user is
-        // mid-click on — blurring a field fires change, which lands here first.
+        // mid-click on, because blurring a field fires change, which lands here first.
         const signature = JSON.stringify(errors);
         if (signature === lastErrorSignature) return;
         lastErrorSignature = signature;

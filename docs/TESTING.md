@@ -34,7 +34,7 @@ Result: 21 tests, 21 passed, 0 failed, duration 21.6441ms.
 Open `uk-retirement-simulator.html` directly in a current desktop Chrome,
 Edge, or Firefox. No server or network connection is required.
 
-### Completed browser verification — 2026-08-04
+### Completed browser verification, 2026-08-04
 
 Against the verified feature-branch head, including the browser fixes:
 
